@@ -499,6 +499,20 @@
           </div>
         </div>
         <div id="export-status" style="display:none" class="mt-4"></div>
+          <div class="rounded-xl p-6 mt-5" style="background:var(--bg-card);border:1px solid rgba(239,68,68,0.15)">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:rgba(239,68,68,0.1)">
+                <svg class="w-5 h-5" style="color:#ef4444" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </div>
+              <div>
+                <p class="font-medium" style="color:var(--text-primary)">Clear Imported Models</p>
+                <p class="text-xs mt-0.5" style="color:var(--text-secondary)">Remove all imported models, keep original 30</p>
+              </div>
+            </div>
+            <button onclick="clearImportedModels()" class="w-full py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-all" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2)">
+              Clear All Imported Models
+            </button>
+          </div>
       </div>
 
       <!-- ── SCHEMA TAB ── -->
@@ -979,6 +993,34 @@ function showPreview(models, skipped, notes, source) {
   document.getElementById('preview-section').style.display = 'block';
   showStatus('success', models.length + ' models parsed successfully. Click "Import Models" to add them.');
 }
+// ── IMPORTED MODELS PERSISTENCE ───────────────────────────────────────────────
+const IMPORTED_KEY = 'mml_imported_models';
+
+function saveImportedModels() {
+  try {
+    // Only save models that are NOT in the original built-in set
+    const builtInIds = new Set(BUILT_IN_IDS);
+    const imported = mentalModels.filter(m => !builtInIds.has(m.id));
+    localStorage.setItem(IMPORTED_KEY, JSON.stringify(imported));
+  } catch(e) { console.warn('Could not save models:', e); }
+}
+
+function loadImportedModels() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(IMPORTED_KEY) || '[]');
+    if (!stored.length) return;
+    let added = 0;
+    stored.forEach(m => {
+      if (m.id && m.name && !mentalModels.some(x => x.id === m.id)) {
+        mentalModels.push(m);
+        added++;
+      }
+    });
+    if (added > 0) console.log('Restored ' + added + ' imported models from storage');
+  } catch(e) { console.warn('Could not load models:', e); }
+}
+// ── IMPORTED MODELS PERSISTENCE END ───────────────────────────────────────────
+
 function importModels(){
   const mode=document.querySelector('input[name="import-mode"]:checked').value;
   if(mode==='replace') mentalModels.length=0;
@@ -986,9 +1028,10 @@ function importModels(){
   const addedNames=[];
   pendingModels.forEach(m=>{if(mentalModels.some(x=>x.id===m.id))skipped++;else{mentalModels.push(m);added++;addedNames.push(m.name);}});
   cancelImport();
+  saveImportedModels();
   const detail = mode==='replace' ? 'Library replaced.' : skipped ? `${skipped} duplicate${skipped!==1?'s':''} skipped.` : '';
   addLog('import', `Imported ${added} model${added!==1?'s':''}`, detail||null, addedNames.length ? addedNames : null);
-  showStatus('success',`Imported ${added} model${added!==1?'s':''}${skipped?'. Skipped '+skipped+' duplicate(s).':'.'}`);
+  showStatus('success',`Imported ${added} model${added!==1?'s':''}${skipped?'. Skipped '+skipped+' duplicate(s).':'.'}  Models saved — they will persist after refresh.`);
   updateAdminStats();
   setTimeout(()=>{ renderModels(); },800);
 }
@@ -1309,6 +1352,24 @@ function renderLog() {
 }
 updateLogBadge();
 // ── ACTIVITY LOG END ──────────────────────────────────────────────────────────
+
+// Snapshot built-in IDs before any imports, then restore saved models
+const BUILT_IN_IDS = mentalModels.map(m => m.id);
+loadImportedModels();
+
+function clearImportedModels() {
+  const builtInIds = new Set(BUILT_IN_IDS);
+  const removed = mentalModels.filter(m => !builtInIds.has(m.id)).length;
+  // Keep only built-in models
+  mentalModels.length = 0;
+  BUILT_IN_IDS.forEach(id => {
+    // We need to re-add built-ins — they're already gone. Use localStorage backup or reload.
+  });
+  // Simpler: just clear storage and reload
+  localStorage.removeItem(IMPORTED_KEY);
+  addLog('import', 'Imported models cleared', removed + ' model' + (removed !== 1 ? 's' : '') + ' removed. Reloading...');
+  setTimeout(() => window.location.reload(), 800);
+}
 
 renderModels();
 setupContextCheckboxes();
