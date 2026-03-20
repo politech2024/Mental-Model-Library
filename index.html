@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mental Model Library</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body { box-sizing: border-box; }
+    :root { --bg-primary:#0F1115; --bg-card:#1A1D23; --accent-gold:#A89968; --accent-steel:#5A7B9A; --text-primary:#F2F2F2; --text-secondary:#B8BCC6; }
+    * { font-family:'Inter',sans-serif; }
+    h1,h2,h3,h4,.heading-font { font-family:'IBM Plex Serif',serif; }
+    .card-hover { transition:transform 0.2s ease,box-shadow 0.2s ease; }
+    .card-hover:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.4); }
+    .tag-chip { font-size:0.65rem; letter-spacing:0.05em; text-transform:uppercase; }
+    .filter-btn { transition:all 0.15s ease; }
+    .filter-btn:hover { background:rgba(168,153,104,0.15); }
+    .filter-btn.active { background:rgba(168,153,104,0.2); border-color:var(--accent-gold); color:var(--accent-gold) !important; }
+    .confidence-high { background:rgba(90,123,154,0.2); color:var(--accent-steel); }
+    .confidence-medium { background:rgba(168,153,104,0.2); color:var(--accent-gold); }
+    .nav-link { position:relative; }
+    .nav-link::after { content:''; position:absolute; bottom:-2px; left:0; width:0; height:1px; background:var(--accent-gold); transition:width 0.2s ease; }
+    .nav-link:hover::after { width:100%; }
+    .section-divider { height:1px; background:linear-gradient(90deg,transparent,rgba(168,153,104,0.3),transparent); }
+    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar-track { background:var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background:#2A2D33; border-radius:3px; }
+    .fade-in { animation:fadeIn 0.3s ease forwards; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .yt-wrap { position:relative; padding-top:56.25%; background:#000; border-radius:10px; overflow:hidden; }
+    .yt-wrap iframe { position:absolute; top:0; left:0; width:100%; height:100%; border:none; }
+    /* Admin Login */
+    .login-overlay { position:fixed; inset:0; z-index:2000; display:flex; align-items:center; justify-content:center; background:rgba(10,11,14,0.96); backdrop-filter:blur(8px); }
+    .login-box { width:100%; max-width:400px; margin:16px; }
+    .login-input { width:100%; padding:12px 16px; border-radius:8px; font-size:0.9rem; background:rgba(0,0,0,0.5); border:1px solid rgba(168,153,104,0.25); color:var(--text-primary); outline:none; transition:border-color 0.2s; }
+    .login-input:focus { border-color:var(--accent-gold); }
+    .login-input.error { border-color:#ef4444; animation:shake 0.35s ease; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+    /* Log Drawer */
+    .log-drawer { position:fixed; top:0; right:0; height:100vh; width:380px; max-width:95vw; z-index:900; transform:translateX(100%); transition:transform 0.3s cubic-bezier(0.4,0,0.2,1); display:flex; flex-direction:column; }
+    .log-drawer.open { transform:translateX(0); }
+    .log-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:899; opacity:0; pointer-events:none; transition:opacity 0.3s ease; backdrop-filter:blur(2px); }
+    .log-backdrop.open { opacity:1; pointer-events:all; }
+    .log-badge { position:absolute; top:-4px; right:-4px; min-width:18px; height:18px; border-radius:9px; font-size:0.65rem; font-weight:700; display:flex; align-items:center; justify-content:center; padding:0 4px; background:#ef4444; color:white; }
+    .log-entry { animation:slideIn 0.25s ease forwards; }
+    @keyframes slideIn { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:translateX(0)} }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.82); display:flex; align-items:center; justify-content:center; z-index:1000; backdrop-filter:blur(4px); }
+    .modal-box { background:var(--bg-card); border:1px solid rgba(168,153,104,0.2); border-radius:12px; padding:28px; width:90%; max-width:480px; }
+    .vid-input { width:100%; padding:10px 14px; border-radius:6px; font-size:0.875rem; background:rgba(0,0,0,0.4); border:1px solid rgba(168,153,104,0.3); color:var(--text-primary); outline:none; }
+    .vid-input:focus { border-color:var(--accent-gold); }
+  </style>
+</head>
+<body class="h-full" style="background:var(--bg-primary);color:var(--text-primary)">
+
+<!-- VIDEO MODAL -->
+<div id="video-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3 class="text-lg font-semibold heading-font mb-2" style="color:var(--text-primary)">Set YouTube Video</h3>
+    <p class="text-sm mb-4" style="color:var(--text-secondary)">For: <strong id="modal-name" style="color:var(--accent-gold)"></strong></p>
+    <input id="vid-input" class="vid-input mb-2" placeholder="Paste YouTube URL or video ID (e.g. dQw4w9WgXcQ)">
+    <p class="text-xs mb-4" style="color:var(--text-secondary);opacity:0.7">Right-click any YouTube video → Copy video URL, then paste here.</p>
+    <div class="flex gap-3">
+      <button onclick="saveVideo()" class="flex-1 py-2 rounded-md text-sm font-medium" style="background:var(--accent-gold);color:#0F1115">Save Video</button>
+      <button onclick="closeModal()" class="flex-1 py-2 rounded-md text-sm font-medium" style="background:rgba(168,153,104,0.15);color:var(--accent-gold)">Cancel</button>
+    </div>
+    <button id="remove-vid-btn" onclick="removeVideo()" class="mt-3 w-full py-2 rounded-md text-sm hidden" style="color:#ef4444;background:rgba(239,68,68,0.1)">Remove Video</button>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN MODAL -->
+<div id="login-overlay" class="login-overlay hidden">
+  <div class="login-box">
+    <div class="text-center mb-8">
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background:rgba(168,153,104,0.12);border:1px solid rgba(168,153,104,0.2)">
+        <svg class="w-7 h-7" style="color:var(--accent-gold)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+      </div>
+      <h2 class="text-2xl font-semibold heading-font" style="color:var(--text-primary)">Admin Access</h2>
+      <p class="text-sm mt-1" style="color:var(--text-secondary)">Mental Model Library</p>
+    </div>
+    <div class="rounded-2xl p-7" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.15)">
+      <div class="mb-5">
+        <label class="block text-xs font-medium uppercase tracking-wider mb-2" style="color:var(--text-secondary)">Admin ID</label>
+        <input id="login-id" type="text" class="login-input" placeholder="Enter admin ID" autocomplete="off" onkeydown="if(event.key==='Enter')attemptLogin()">
+      </div>
+      <div class="mb-6">
+        <label class="block text-xs font-medium uppercase tracking-wider mb-2" style="color:var(--text-secondary)">Password</label>
+        <div class="relative">
+          <input id="login-pw" type="password" class="login-input" style="padding-right:40px" placeholder="Enter password" autocomplete="off" onkeydown="if(event.key==='Enter')attemptLogin()">
+          <button onclick="togglePwVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-100 transition-opacity" style="color:var(--text-secondary)" tabindex="-1">
+            <svg id="pw-eye" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          </button>
+        </div>
+      </div>
+      <p id="login-error" class="hidden text-xs mb-4 px-3 py-2.5 rounded-lg" style="color:#ef4444;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.18)">Incorrect ID or password. Please try again.</p>
+      <button onclick="attemptLogin()" id="login-btn" class="w-full py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90" style="background:var(--accent-gold);color:#0F1115">
+        Sign In
+      </button>
+    </div>
+    <button onclick="closeLogin()" class="w-full mt-4 py-2 text-sm transition-all hover:opacity-70" style="color:var(--text-secondary)">
+      Cancel
+    </button>
+  </div>
+</div>
+
+<div id="app" class="h-full w-full overflow-auto">
+
+<!-- NAV -->
+<header class="sticky top-0 z-50" style="background:rgba(15,17,21,0.95);backdrop-filter:blur(8px);border-bottom:1px solid rgba(168,153,104,0.1)">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-8">
+      <h1 class="text-lg font-semibold heading-font cursor-pointer" onclick="showPage('library')" style="color:var(--text-primary)">Mental Model Library</h1>
+      <nav class="hidden md:flex items-center gap-6 text-sm" style="color:var(--text-secondary)">
+        <button onclick="showPage('library')" class="nav-link hover:text-white transition-colors">Index</button>
+        <button onclick="showPage('context')" class="nav-link hover:text-white transition-colors">Decision Context</button>
+        <button onclick="showPage('about')" class="nav-link hover:text-white transition-colors">Methodology</button>
+      </nav>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="relative hidden md:block">
+        <input type="text" id="search-input" placeholder="Search models..." oninput="handleSearch(this.value)"
+          class="w-48 md:w-64 px-4 py-2 text-sm rounded-md border focus:outline-none transition-all"
+          style="background:var(--bg-card);border-color:rgba(168,153,104,0.2);color:var(--text-primary)">
+        <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4" style="color:var(--text-secondary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      </div>
+      <button onclick="openLogin()" class="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all hover:opacity-90" style="background:var(--accent-gold);color:#0F1115">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span>Admin</span>
+        <span id="log-badge" class="hidden text-xs font-bold px-1.5 py-0.5 rounded-full" style="background:#ef4444;color:white;font-size:0.6rem">0</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- LIBRARY PAGE -->
+<main id="page-library" class="page-content">
+  <section class="py-16 px-6">
+    <div class="max-w-7xl mx-auto">
+      <div class="max-w-3xl">
+        <h2 class="text-4xl md:text-5xl font-semibold heading-font mb-4" style="color:var(--text-primary);line-height:1.2">Mental Model Library</h2>
+        <p class="text-lg mb-3" style="color:var(--text-secondary);line-height:1.7">Comprehensive frameworks spanning domains from ancient philosophy to AI era strategy</p>
+        <p class="text-sm mb-6" style="color:var(--accent-gold);opacity:0.8">50+ models across 14 domains, 9 analytical lenses, and 6 historical eras</p>
+        <div class="relative md:hidden">
+          <input type="text" placeholder="Search models..." oninput="handleSearch(this.value)"
+            class="w-full px-4 py-2.5 text-sm rounded-md border focus:outline-none"
+            style="background:var(--bg-card);border-color:rgba(168,153,104,0.2);color:var(--text-primary)">
+          <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4" style="color:var(--text-secondary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="px-6 pb-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="flex flex-wrap gap-3 mb-6">
+        <span class="text-xs uppercase tracking-wider mr-2 self-center" style="color:var(--text-secondary)">Domain:</span>
+        <button onclick="toggleFilter('domain','all')" class="filter-btn active px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="all">All</button>
+        <button onclick="toggleFilter('domain','politics')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="politics">Politics</button>
+        <button onclick="toggleFilter('domain','science')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="science">Science</button>
+        <button onclick="toggleFilter('domain','governance')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="governance">Governance</button>
+        <button onclick="toggleFilter('domain','strategy')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="strategy">Strategy</button>
+        <button onclick="toggleFilter('domain','economics')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="economics">Economics</button>
+        <button onclick="toggleFilter('domain','finance')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="finance">Finance</button>
+        <button onclick="toggleFilter('domain','love')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="love">Love</button>
+        <button onclick="toggleFilter('domain','health')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="health">Health</button>
+        <button onclick="toggleFilter('domain','technology')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="technology">Technology</button>
+        <button onclick="toggleFilter('domain','culture')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="culture">Culture</button>
+        <button onclick="toggleFilter('domain','law')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="law">Law</button>
+        <button onclick="toggleFilter('domain','business')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="business">Business</button>
+        <button onclick="toggleFilter('domain','environment')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="environment">Environment</button>
+        <button onclick="toggleFilter('domain','identity')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="identity">Identity</button>
+      </div>
+      <div class="flex flex-wrap gap-3 mb-6">
+        <span class="text-xs uppercase tracking-wider mr-2 self-center" style="color:var(--text-secondary)">Lens:</span>
+        <button onclick="toggleFilter('lens','all')" class="filter-btn active px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="all">All</button>
+        <button onclick="toggleFilter('lens','power')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="power">Power</button>
+        <button onclick="toggleFilter('lens','risk')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="risk">Risk</button>
+        <button onclick="toggleFilter('lens','incentives')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="incentives">Incentives</button>
+        <button onclick="toggleFilter('lens','feedback')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="feedback">Feedback</button>
+        <button onclick="toggleFilter('lens','ethics')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="ethics">Ethics</button>
+        <button onclick="toggleFilter('lens','optionality')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="optionality">Optionality</button>
+        <button onclick="toggleFilter('lens','time')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="time">Time</button>
+        <button onclick="toggleFilter('lens','asymmetry')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="asymmetry">Asymmetry</button>
+        <button onclick="toggleFilter('lens','coordination')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="coordination">Coordination</button>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <span class="text-xs uppercase tracking-wider mr-2 self-center" style="color:var(--text-secondary)">Era:</span>
+        <button onclick="toggleFilter('era','all')" class="filter-btn active px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="all">All</button>
+        <button onclick="toggleFilter('era','ancient')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="ancient">Ancient</button>
+        <button onclick="toggleFilter('era','medieval')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="medieval">Medieval</button>
+        <button onclick="toggleFilter('era','earlymodern')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="earlymodern">Early Modern</button>
+        <button onclick="toggleFilter('era','industrial')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="industrial">Industrial</button>
+        <button onclick="toggleFilter('era','digital')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="digital">Digital</button>
+        <button onclick="toggleFilter('era','aiera')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="aiera">AI Era</button>
+      </div>
+    </div>
+  </section>
+  <section class="px-6 pb-16">
+    <div class="max-w-7xl mx-auto">
+      <div id="models-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+      <div id="no-results" class="hidden text-center py-16"><p style="color:var(--text-secondary)">No models match your current filters.</p></div>
+    </div>
+  </section>
+</main>
+
+<!-- DETAIL PAGE -->
+<main id="page-detail" class="page-content hidden">
+  <div class="max-w-4xl mx-auto px-6 py-12">
+    <div class="flex items-center justify-between mb-8">
+      <button onclick="showPage('library')" class="flex items-center gap-2 text-sm hover:opacity-80 transition-opacity" style="color:var(--accent-gold)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>Back to Library
+      </button>
+    </div>
+    <div id="detail-content"></div>
+  </div>
+</main>
+
+<!-- CONTEXT PAGE -->
+<main id="page-context" class="page-content hidden">
+  <div class="max-w-4xl mx-auto px-6 py-12">
+    <h2 class="text-3xl font-semibold heading-font mb-3" style="color:var(--text-primary)">Decision Context Matching</h2>
+    <p class="mb-8" style="color:var(--text-secondary)">Select the characteristics of your decision to identify relevant mental models.</p>
+    <div class="grid gap-6">
+      <div class="p-6 rounded-lg" style="background:var(--bg-card)">
+        <h3 class="text-lg font-medium heading-font mb-4" style="color:var(--text-primary)">Decision Characteristics</h3>
+        <div class="grid gap-3">
+          <label class="flex items-center gap-3 cursor-pointer group"><input type="checkbox" class="context-checkbox w-4 h-4 rounded" style="accent-color:var(--accent-gold)" value="high-stakes"><span class="text-sm group-hover:text-white transition-colors" style="color:var(--text-secondary)">High stakes / significant consequences</span></label>
+          <label class="flex items-center gap-3 cursor-pointer group"><input type="checkbox" class="context-checkbox w-4 h-4 rounded" style="accent-color:var(--accent-gold)" value="multi-stakeholder"><span class="text-sm group-hover:text-white transition-colors" style="color:var(--text-secondary)">Multiple stakeholders with competing interests</span></label>
+          <label class="flex items-center gap-3 cursor-pointer group"><input type="checkbox" class="context-checkbox w-4 h-4 rounded" style="accent-color:var(--accent-gold)" value="irreversible"><span class="text-sm group-hover:text-white transition-colors" style="color:var(--text-secondary)">Irreversible or difficult to reverse</span></label>
+          <label class="flex items-center gap-3 cursor-pointer group"><input type="checkbox" class="context-checkbox w-4 h-4 rounded" style="accent-color:var(--accent-gold)" value="uncertainty"><span class="text-sm group-hover:text-white transition-colors" style="color:var(--text-secondary)">High uncertainty / incomplete information</span></label>
+          <label class="flex items-center gap-3 cursor-pointer group"><input type="checkbox" class="context-checkbox w-4 h-4 rounded" style="accent-color:var(--accent-gold)" value="time-pressure"><span class="text-sm group-hover:text-white transition-colors" style="color:var(--text-secondary)">Time pressure / urgency</span></label>
+          <label class="flex items-center gap-3 cursor-pointer group"><input type="checkbox" class="context-checkbox w-4 h-4 rounded" style="accent-color:var(--accent-gold)" value="power-dynamics"><span class="text-sm group-hover:text-white transition-colors" style="color:var(--text-secondary)">Complex power dynamics</span></label>
+          <label class="flex items-center gap-3 cursor-pointer group"><input type="checkbox" class="context-checkbox w-4 h-4 rounded" style="accent-color:var(--accent-gold)" value="ethical"><span class="text-sm group-hover:text-white transition-colors" style="color:var(--text-secondary)">Ethical considerations / moral dimensions</span></label>
+          <label class="flex items-center gap-3 cursor-pointer group"><input type="checkbox" class="context-checkbox w-4 h-4 rounded" style="accent-color:var(--accent-gold)" value="long-term"><span class="text-sm group-hover:text-white transition-colors" style="color:var(--text-secondary)">Long-term consequences matter</span></label>
+        </div>
+      </div>
+      <div class="p-6 rounded-lg" style="background:var(--bg-card)">
+        <h3 class="text-lg font-medium heading-font mb-4" style="color:var(--text-primary)">Recommended Models</h3>
+        <div id="context-results" class="grid gap-3"><p class="text-sm" style="color:var(--text-secondary)">Select decision characteristics above to see recommended mental models.</p></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ADMIN PAGE -->
+<main id="page-admin" class="page-content hidden" style="min-height:100vh">
+  <!-- Admin Header -->
+  <div style="background:linear-gradient(135deg,rgba(168,153,104,0.07) 0%,transparent 50%);border-bottom:1px solid rgba(168,153,104,0.1)">
+    <div class="max-w-7xl mx-auto px-6 py-8">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:rgba(168,153,104,0.15)">
+            <svg class="w-5 h-5" style="color:var(--accent-gold)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </div>
+          <div>
+            <h2 class="text-2xl font-semibold heading-font" style="color:var(--text-primary)">Admin Panel</h2>
+            <p class="text-sm" style="color:var(--text-secondary)">Manage imports, videos, activity log and exports</p>
+          </div>
+        </div>
+        <button onclick="showPage('library')" class="flex items-center gap-2 text-sm px-4 py-2 rounded-lg transition-all hover:opacity-80" style="background:rgba(168,153,104,0.1);color:var(--accent-gold);border:1px solid rgba(168,153,104,0.2)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          Back to Library
+        </button>
+        <button onclick="logoutAdmin()" class="flex items-center gap-2 text-sm px-4 py-2 rounded-lg transition-all hover:opacity-80" style="background:rgba(239,68,68,0.08);color:#ef4444;border:1px solid rgba(239,68,68,0.2)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          Log Out
+        </button>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+        <div class="p-4 rounded-xl" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.1)">
+          <p class="text-xs uppercase tracking-wider mb-1" style="color:var(--text-secondary)">Total Models</p>
+          <p id="stat-models" class="text-2xl font-semibold heading-font" style="color:var(--text-primary)">0</p>
+        </div>
+        <div class="p-4 rounded-xl" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.1)">
+          <p class="text-xs uppercase tracking-wider mb-1" style="color:var(--text-secondary)">Videos Set</p>
+          <p id="stat-videos" class="text-2xl font-semibold heading-font" style="color:var(--text-primary)">0</p>
+        </div>
+        <div class="p-4 rounded-xl" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.1)">
+          <p class="text-xs uppercase tracking-wider mb-1" style="color:var(--text-secondary)">Activity Events</p>
+          <p id="stat-events" class="text-2xl font-semibold heading-font" style="color:var(--text-primary)">0</p>
+        </div>
+        <div class="p-4 rounded-xl" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.1)">
+          <p class="text-xs uppercase tracking-wider mb-1" style="color:var(--text-secondary)">Domains Covered</p>
+          <p id="stat-domains" class="text-2xl font-semibold heading-font" style="color:var(--text-primary)">0</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Body: Sidebar + Content -->
+  <div class="max-w-7xl mx-auto px-6 py-8 flex gap-6">
+
+    <!-- Sidebar -->
+    <aside class="w-52 shrink-0">
+      <nav class="flex flex-col gap-1 sticky top-24">
+        <button onclick="switchAdminTab('import')" id="atab-import" class="admin-tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-left transition-all" style="background:rgba(168,153,104,0.15);color:var(--accent-gold)">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          Import Models
+        </button>
+        <button onclick="switchAdminTab('videos')" id="atab-videos" class="admin-tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-left transition-all" style="color:var(--text-secondary)">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          Video Manager
+        </button>
+        <button onclick="switchAdminTab('log')" id="atab-log" class="admin-tab-btn flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm font-medium text-left transition-all" style="color:var(--text-secondary)">
+          <span class="flex items-center gap-3">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            Activity Log
+          </span>
+          <span id="admin-log-badge" class="hidden text-xs font-bold px-1.5 py-0.5 rounded-full" style="background:#ef4444;color:white;font-size:0.6rem">0</span>
+        </button>
+        <button onclick="switchAdminTab('export')" id="atab-export" class="admin-tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-left transition-all" style="color:var(--text-secondary)">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Export
+        </button>
+        <div class="my-2" style="height:1px;background:rgba(168,153,104,0.1)"></div>
+        <button onclick="switchAdminTab('schema')" id="atab-schema" class="admin-tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-left transition-all" style="color:var(--text-secondary)">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+          JSON Schema
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 min-w-0">
+
+      <!-- ── IMPORT TAB ── -->
+      <div id="admin-tab-import" class="admin-tab-content">
+        <div class="mb-6">
+          <h3 class="text-xl font-semibold heading-font mb-1" style="color:var(--text-primary)">Import Mental Models</h3>
+          <p class="text-sm" style="color:var(--text-secondary)">Upload a .json file or paste JSON directly. Single model or batch array supported.</p>
+        </div>
+        <div class="grid lg:grid-cols-2 gap-6">
+          <!-- Left: upload controls -->
+          <div class="flex flex-col gap-5">
+            <!-- Tab switcher -->
+            <div class="flex rounded-xl p-1 gap-1" style="background:var(--bg-card)">
+              <button onclick="switchUploadTab('file')" id="tab-file" class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all" style="background:rgba(168,153,104,0.2);color:var(--accent-gold)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                File Upload
+              </button>
+              <button onclick="switchUploadTab('text')" id="tab-text" class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all" style="color:var(--text-secondary)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                Paste JSON
+              </button>
+            </div>
+            <!-- File drop -->
+            <div id="upload-file-section">
+              <!-- Hidden file input OUTSIDE the drop zone to avoid click bubbling -->
+              <input type="file" id="file-input" accept=".json" style="display:none" onchange="handleFileSelect(event)"/>
+              <div id="upload-area" class="rounded-xl transition-all" style="border:2px dashed rgba(168,153,104,0.3);background:rgba(168,153,104,0.02)"
+                ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
+                <div class="flex flex-col items-center justify-center py-12 px-6 text-center">
+                  <div class="w-14 h-14 rounded-full flex items-center justify-center mb-4" style="background:rgba(168,153,104,0.1)">
+                    <svg class="w-7 h-7" style="color:var(--accent-gold)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                  </div>
+                  <p class="font-medium mb-1" style="color:var(--text-primary)">Drop JSON file here</p>
+                  <p class="text-sm mb-4" style="color:var(--text-secondary)">or click the button below to browse</p>
+                  <!-- Use label for reliable file input triggering across all browsers -->
+                  <label for="file-input" class="cursor-pointer px-5 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90" style="background:var(--accent-gold);color:#0F1115;display:inline-block">
+                    Choose File
+                  </label>
+                </div>
+              </div>
+              <div id="file-chosen-name" class="hidden mt-2 text-xs text-center" style="color:var(--accent-gold)"></div>
+            </div>
+            <!-- Paste JSON -->
+            <div id="upload-text-section" style="display:none">
+              <div class="rounded-xl p-5" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.12)">
+                <label class="block text-sm font-medium mb-3" style="color:var(--text-primary)">Paste JSON content</label>
+                <textarea id="json-textarea" placeholder='[{"id":"model-1","name":"Model Name",...}]'
+                  class="w-full h-48 p-4 rounded-lg font-mono text-xs border resize-none focus:outline-none"
+                  style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.2);color:var(--text-primary);line-height:1.6"></textarea>
+                <button onclick="handleTextInput()" class="mt-3 w-full py-2.5 rounded-lg text-sm font-medium hover:opacity-90" style="background:var(--accent-gold);color:#0F1115">Parse &amp; Preview</button>
+              </div>
+            </div>
+            <!-- Import mode -->
+            <div class="rounded-xl p-4" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.12)">
+              <p class="text-xs font-medium uppercase tracking-wider mb-3" style="color:var(--text-secondary)">Import mode</p>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="flex items-start gap-3 p-3 rounded-lg cursor-pointer" style="border:1px solid rgba(168,153,104,0.25);background:rgba(168,153,104,0.06)">
+                  <input type="radio" name="import-mode" value="add" checked style="accent-color:var(--accent-gold);margin-top:2px">
+                  <div><p class="text-sm font-medium" style="color:var(--text-primary)">Add</p><p class="text-xs mt-0.5" style="color:var(--text-secondary)">Merge with existing</p></div>
+                </label>
+                <label class="flex items-start gap-3 p-3 rounded-lg cursor-pointer" style="border:1px solid rgba(168,153,104,0.12)">
+                  <input type="radio" name="import-mode" value="replace" style="accent-color:var(--accent-gold);margin-top:2px">
+                  <div><p class="text-sm font-medium" style="color:var(--text-primary)">Replace</p><p class="text-xs mt-0.5" style="color:var(--text-secondary)">Overwrite all models</p></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: preview -->
+          <div class="flex flex-col gap-5">
+            <div id="preview-section" style="display:none">
+              <div class="rounded-xl p-5 h-full" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.2)">
+                <div class="flex items-center justify-between mb-4">
+                  <h4 class="text-sm font-semibold heading-font" style="color:var(--text-primary)">Preview</h4>
+                  <span id="preview-count" class="text-xs px-2.5 py-1 rounded-full" style="background:rgba(168,153,104,0.15);color:var(--accent-gold)"></span>
+                </div>
+                <div id="preview-list" class="space-y-2 max-h-80 overflow-y-auto pr-1 mb-5"></div>
+                <div class="flex gap-3">
+                  <button onclick="importModels()" class="flex-1 py-2.5 rounded-lg text-sm font-medium hover:opacity-90" style="background:var(--accent-gold);color:#0F1115">Import Models</button>
+                  <button onclick="cancelImport()" class="py-2.5 px-4 rounded-lg text-sm font-medium" style="background:rgba(168,153,104,0.1);color:var(--text-secondary);border:1px solid rgba(168,153,104,0.15)">Cancel</button>
+                </div>
+              </div>
+            </div>
+            <div id="status-message" style="display:none"></div>
+            <!-- Empty preview state -->
+            <div id="preview-empty-state" class="rounded-xl flex flex-col items-center justify-center py-16 gap-3" style="background:var(--bg-card);border:1px dashed rgba(168,153,104,0.15)">
+              <svg class="w-10 h-10 opacity-20" style="color:var(--text-secondary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <p class="text-sm" style="color:var(--text-secondary);opacity:0.5">Upload or paste JSON to preview models</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── VIDEOS TAB ── -->
+      <div id="admin-tab-videos" class="admin-tab-content hidden">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h3 class="text-xl font-semibold heading-font mb-1" style="color:var(--text-primary)">Video Manager</h3>
+            <p class="text-sm" style="color:var(--text-secondary)">Set or update YouTube videos for each mental model.</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="filterVideoList('all')" id="vf-all" class="video-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style="background:rgba(168,153,104,0.2);color:var(--accent-gold)">All</button>
+            <button onclick="filterVideoList('set')" id="vf-set" class="video-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style="background:transparent;color:var(--text-secondary);border:1px solid rgba(168,153,104,0.15)">Has Video</button>
+            <button onclick="filterVideoList('unset')" id="vf-unset" class="video-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style="background:transparent;color:var(--text-secondary);border:1px solid rgba(168,153,104,0.15)">No Video</button>
+          </div>
+        </div>
+        <div id="video-manager-list" class="flex flex-col gap-2"></div>
+      </div>
+
+      <!-- ── LOG TAB ── -->
+      <div id="admin-tab-log" class="admin-tab-content hidden">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h3 class="text-xl font-semibold heading-font mb-1" style="color:var(--text-primary)">Activity Log</h3>
+            <p id="log-count-label" class="text-sm" style="color:var(--text-secondary)">No activity yet</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex gap-2">
+              <button onclick="setLogFilter('all')" id="lf-all" class="log-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style="background:rgba(168,153,104,0.2);color:var(--accent-gold)">All</button>
+              <button onclick="setLogFilter('import')" id="lf-import" class="log-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style="background:transparent;color:var(--text-secondary);border:1px solid rgba(168,153,104,0.15)">Imports</button>
+              <button onclick="setLogFilter('video')" id="lf-video" class="log-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style="background:transparent;color:var(--text-secondary);border:1px solid rgba(168,153,104,0.15)">Videos</button>
+              <button onclick="setLogFilter('export')" id="lf-export" class="log-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style="background:transparent;color:var(--text-secondary);border:1px solid rgba(168,153,104,0.15)">Exports</button>
+              <button onclick="setLogFilter('error')" id="lf-error" class="log-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style="background:transparent;color:var(--text-secondary);border:1px solid rgba(168,153,104,0.15)">Errors</button>
+            </div>
+            <button onclick="clearLog()" id="clear-log-btn" class="hidden text-xs px-3 py-1.5 rounded-lg transition-all hover:opacity-80" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2)">Clear All</button>
+          </div>
+        </div>
+        <div id="log-entries" class="flex flex-col gap-2">
+          <div id="log-empty" class="flex flex-col items-center justify-center py-20 gap-3">
+            <svg class="w-12 h-12 opacity-20" style="color:var(--text-secondary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <p class="text-sm" style="color:var(--text-secondary);opacity:0.5">No activity recorded yet</p>
+            <p class="text-xs" style="color:var(--text-secondary);opacity:0.35">Import models or set videos to see events here</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EXPORT TAB ── -->
+      <div id="admin-tab-export" class="admin-tab-content hidden">
+        <div class="mb-6">
+          <h3 class="text-xl font-semibold heading-font mb-1" style="color:var(--text-primary)">Export Library</h3>
+          <p class="text-sm" style="color:var(--text-secondary)">Download the full model library as a JSON file. Includes all custom video IDs.</p>
+        </div>
+        <div class="grid md:grid-cols-2 gap-5">
+          <div class="rounded-xl p-6" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.12)">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:rgba(90,123,154,0.15)">
+                <svg class="w-5 h-5" style="color:var(--accent-steel)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              </div>
+              <div>
+                <p class="font-medium" style="color:var(--text-primary)">Full Library Export</p>
+                <p class="text-xs mt-0.5" style="color:var(--text-secondary)">All models with complete fields</p>
+              </div>
+            </div>
+            <p id="export-model-count" class="text-sm mb-5" style="color:var(--text-secondary)">Loading...</p>
+            <button onclick="exportModels()" class="w-full py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-all" style="background:var(--accent-gold);color:#0F1115">
+              Download as JSON
+            </button>
+          </div>
+          <div class="rounded-xl p-6" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.12)">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:rgba(255,0,0,0.1)">
+                <svg class="w-5 h-5" style="color:#ff5555" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </div>
+              <div>
+                <p class="font-medium" style="color:var(--text-primary)">Video Links Export</p>
+                <p class="text-xs mt-0.5" style="color:var(--text-secondary)">Custom video IDs from local storage</p>
+              </div>
+            </div>
+            <p id="export-video-count" class="text-sm mb-5" style="color:var(--text-secondary)">Loading...</p>
+            <button onclick="exportVideoLinks()" class="w-full py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition-all" style="background:rgba(255,0,0,0.12);color:#ff5555;border:1px solid rgba(255,80,80,0.25)">
+              Download Video Links
+            </button>
+          </div>
+        </div>
+        <div id="export-status" style="display:none" class="mt-4"></div>
+      </div>
+
+      <!-- ── SCHEMA TAB ── -->
+      <div id="admin-tab-schema" class="admin-tab-content hidden">
+        <div class="mb-6">
+          <h3 class="text-xl font-semibold heading-font mb-1" style="color:var(--text-primary)">JSON Schema Reference</h3>
+          <p class="text-sm" style="color:var(--text-secondary)">Use this format when creating JSON files for import.</p>
+        </div>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="rounded-xl overflow-hidden" style="border:1px solid rgba(168,153,104,0.15)">
+            <div class="px-5 py-3 flex items-center justify-between" style="background:rgba(168,153,104,0.08);border-bottom:1px solid rgba(168,153,104,0.12)">
+              <span class="text-sm font-medium" style="color:var(--text-primary)">Schema</span>
+              <span class="text-xs px-2 py-0.5 rounded" style="background:rgba(90,123,154,0.2);color:var(--accent-steel)">.json</span>
+            </div>
+            <div class="p-5 overflow-x-auto" style="background:rgba(0,0,0,0.45)">
+              <pre class="text-xs leading-relaxed font-mono" style="color:#B8BCC6"><span style="color:#7A9EC0">{</span>
+  <span style="color:#A89968">"id"</span>: <span style="color:#8FBB8F">"unique-id"</span>,
+  <span style="color:#A89968">"name"</span>: <span style="color:#8FBB8F">"Model Name"</span>,
+  <span style="color:#A89968">"thinker"</span>: <span style="color:#8FBB8F">"Author Name"</span>,
+  <span style="color:#A89968">"era"</span>: <span style="color:#8FBB8F">"ancient|medieval|earlymodern
+         |industrial|digital|aiera"</span>,
+  <span style="color:#A89968">"year"</span>: <span style="color:#8FBB8F">"2024"</span>,
+  <span style="color:#A89968">"domain"</span>: <span style="color:#8FBB8F">"politics|science|strategy
+         |economics|finance|health
+         |technology|culture|law
+         |business|environment|identity"</span>,
+  <span style="color:#A89968">"lens"</span>: <span style="color:#8FBB8F">"power|risk|incentives|feedback
+         |ethics|optionality|time
+         |asymmetry|coordination"</span>,
+  <span style="color:#A89968">"confidence"</span>: <span style="color:#8FBB8F">"high|medium"</span>,
+  <span style="color:#A89968">"description"</span>: <span style="color:#8FBB8F">"One-line summary"</span>,
+  <span style="color:#A89968">"tags"</span>: <span style="color:#7A9EC0">[</span><span style="color:#8FBB8F">"Tag1"</span><span style="color:#7A9EC0">]</span>,
+  <span style="color:#A89968">"contextMatch"</span>: <span style="color:#7A9EC0">[</span><span style="color:#8FBB8F">"high-stakes"</span><span style="color:#7A9EC0">]</span>,
+  <span style="color:#A89968">"youtubeId"</span>: <span style="color:#8FBB8F">"dQw4w9WgXcQ"</span>,
+  <span style="color:#A89968">"whatItIs"</span>: <span style="color:#8FBB8F">"Short explanation"</span>,
+  <span style="color:#A89968">"whyExists"</span>: <span style="color:#8FBB8F">"Historical context"</span>,
+  <span style="color:#A89968">"coreMechanism"</span>: <span style="color:#7A9EC0">[</span><span style="color:#8FBB8F">"Step 1"</span><span style="color:#7A9EC0">]</span>,
+  <span style="color:#A89968">"clarifies"</span>: <span style="color:#7A9EC0">[</span><span style="color:#8FBB8F">"Clarification"</span><span style="color:#7A9EC0">]</span>,
+  <span style="color:#A89968">"errorsPrevented"</span>: <span style="color:#7A9EC0">[</span><span style="color:#8FBB8F">"Error"</span><span style="color:#7A9EC0">]</span>,
+  <span style="color:#A89968">"whenNotToUse"</span>: <span style="color:#8FBB8F">"Conditions"</span>,
+  <span style="color:#A89968">"historicalExample"</span>: <span style="color:#8FBB8F">"Example"</span>,
+  <span style="color:#A89968">"relatedModels"</span>: <span style="color:#7A9EC0">[</span><span style="color:#8FBB8F">"model-id"</span><span style="color:#7A9EC0">]</span>
+<span style="color:#7A9EC0">}</span></pre>
+            </div>
+          </div>
+          <div class="flex flex-col gap-4">
+            <div class="rounded-xl p-5" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.12)">
+              <p class="text-sm font-medium mb-4" style="color:var(--text-primary)">Field Guide</p>
+              <div class="space-y-4">
+                <div class="flex items-start gap-3">
+                  <span class="w-2.5 h-2.5 rounded-full mt-1 shrink-0" style="background:#ef4444"></span>
+                  <div><p class="text-xs font-semibold mb-1" style="color:var(--text-primary)">Required</p><p class="text-xs leading-relaxed" style="color:var(--text-secondary)">id, name, thinker, era, year, domain, lens, confidence, description</p></div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <span class="w-2.5 h-2.5 rounded-full mt-1 shrink-0" style="background:var(--accent-gold)"></span>
+                  <div><p class="text-xs font-semibold mb-1" style="color:var(--text-primary)">Recommended</p><p class="text-xs leading-relaxed" style="color:var(--text-secondary)">tags, contextMatch, whatItIs, whyExists, coreMechanism, relatedModels</p></div>
+                </div>
+                <div class="flex items-start gap-3">
+                  <span class="w-2.5 h-2.5 rounded-full mt-1 shrink-0" style="background:var(--accent-steel)"></span>
+                  <div><p class="text-xs font-semibold mb-1" style="color:var(--text-primary)">Optional</p><p class="text-xs leading-relaxed" style="color:var(--text-secondary)">youtubeId, clarifies, errorsPrevented, whenNotToUse, historicalExample</p></div>
+                </div>
+              </div>
+            </div>
+            <div class="rounded-xl p-5" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.12)">
+              <p class="text-sm font-medium mb-3" style="color:var(--text-primary)">Batch Import</p>
+              <p class="text-xs leading-relaxed mb-3" style="color:var(--text-secondary)">Wrap multiple models in a JSON array to import them in one go:</p>
+              <code class="block text-xs p-3 rounded-lg font-mono" style="background:rgba(0,0,0,0.4);color:var(--accent-gold)">[{...model1}, {...model2}]</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end main content -->
+  </div><!-- end body row -->
+</main>
+
+<!-- ABOUT PAGE -->
+<main id="page-about" class="page-content hidden">
+  <div class="max-w-3xl mx-auto px-6 py-12">
+    <h2 class="text-3xl font-semibold heading-font mb-6" style="color:var(--text-primary)">Methodology &amp; Sources</h2>
+    <div class="space-y-6">
+      <div class="p-6 rounded-lg" style="background:var(--bg-card)"><h3 class="text-lg font-medium heading-font mb-3" style="color:var(--text-primary)">Selection Criteria</h3><p class="text-sm leading-relaxed" style="color:var(--text-secondary)">Mental models in this library are selected based on three criteria: historical provenance (documented use by decision-makers), empirical support (evidence from behavioral sciences or historical outcomes), and conceptual clarity (clearly defined mechanisms and boundaries of application).</p></div>
+      <div class="p-6 rounded-lg" style="background:var(--bg-card)"><h3 class="text-lg font-medium heading-font mb-3" style="color:var(--text-primary)">YouTube Videos</h3><p class="text-sm leading-relaxed" style="color:var(--text-secondary)">Each model's detail page features a curated YouTube video. To set or change a video, open any model and click the red "Set Video" button. Paste any YouTube URL or video ID. Your changes are saved in your browser's local storage.</p></div>
+      <div class="p-6 rounded-lg" style="background:var(--bg-card)"><h3 class="text-lg font-medium heading-font mb-3" style="color:var(--text-primary)">Confidence Ratings</h3><ul class="text-sm space-y-2" style="color:var(--text-secondary)"><li><span class="font-medium" style="color:var(--accent-steel)">High confidence:</span> Multiple independent historical sources, empirical validation, and consistent application across domains.</li><li><span class="font-medium" style="color:var(--accent-gold)">Medium confidence:</span> Strong theoretical foundation with some historical support; may have limited empirical testing or domain-specific constraints.</li></ul></div>
+      <div class="p-6 rounded-lg" style="background:var(--bg-card)"><h3 class="text-lg font-medium heading-font mb-3" style="color:var(--text-primary)">Limitations</h3><p class="text-sm leading-relaxed" style="color:var(--text-secondary)">This library presents frameworks, not prescriptions. Mental models are tools for structuring thought, not algorithms for optimal decisions. Context matters. Historical effectiveness does not guarantee future applicability.</p></div>
+      <div class="p-6 rounded-lg" style="background:var(--bg-card)"><h3 class="text-lg font-medium heading-font mb-3" style="color:var(--text-primary)">Primary Sources</h3><p class="text-sm leading-relaxed" style="color:var(--text-secondary)">Models are drawn from primary historical texts, peer-reviewed research in decision science, and documented practices of institutions with long track records of consequential decision-making.</p></div>
+    </div>
+  </div>
+</main>
+
+<footer class="py-8 px-6" style="border-top:1px solid rgba(168,153,104,0.1)">
+  <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+    <p class="text-xs" style="color:var(--text-secondary)">Mental Model Library — Evidence-Based Decision Intelligence</p>
+    <p class="text-xs" style="color:var(--text-secondary);opacity:0.6">For educational and research purposes</p>
+  </div>
+</footer>
+</div>
+
+<script>
+const mentalModels = [
+  {id:'socratic-method',name:'Socratic Method',thinker:'Socrates',era:'ancient',year:'400 BCE',domain:'philosophy',lens:'ethics',confidence:'high',description:'Questioning assumptions to reach deeper understanding rather than transmitting knowledge directly.',tags:['Epistemology','Teaching','Critical Thinking'],contextMatch:['uncertainty','multi-stakeholder'],youtubeId:'2DPGP_aVCmE',youtubeQuery:'Socratic method explained',whatItIs:'A pedagogical and philosophical method of inquiry based on asking probing questions to challenge assumptions and develop critical thinking.',whyExists:'Socrates believed true knowledge comes through dialogue and questioning, not dogmatic instruction. This method uncovers contradictions and reveals the limits of assumed knowledge.',coreMechanism:['Ask clarifying questions about beliefs','Identify contradictions in reasoning','Refine understanding through dialogue','Reach new insights collaboratively'],clarifies:['How to approach learning and knowledge','The value of questioning authority','How dialogue shapes understanding','The limits of assumed knowledge'],errorsPrevented:['Accepting premises without examination','Confusing rhetoric with truth','Dogmatic thinking','Knowledge without understanding'],whenNotToUse:'When immediate action is required. When the other party is not genuinely seeking truth.',historicalExample:'Socrates questioned young Athenians about virtue, justice, and knowledge, famously claiming "I know that I know nothing"—forcing deeper examination.',relatedModels:['epistemic-humility','inversion-thinking']},
+  {id:'stoic-virtue',name:'Stoic Virtue Ethics',thinker:'Marcus Aurelius',era:'ancient',year:'170 CE',domain:'ethics',lens:'ethics',confidence:'high',description:'Focusing on virtue and what is within your control as the path to well-being and wisdom.',tags:['Philosophy','Ethics','Psychology'],contextMatch:['ethical','uncertainty','long-term'],youtubeId:'EFkyxzJtiv4',youtubeQuery:'Stoicism Marcus Aurelius philosophy explained',whatItIs:'The Stoic framework that emphasizes distinguishing between what is within your control (opinions, efforts, values) and what is not (outcomes, external events).',whyExists:'Developed in response to uncertain and sometimes chaotic circumstances. By focusing on virtue and controllable factors, Stoics found stability and meaning.',coreMechanism:['Distinguish controllable from uncontrollable','Focus effort on virtue and right action','Accept outcomes with equanimity','Find meaning in the attempt, not the result'],clarifies:['The source of genuine agency','How to maintain resilience under adversity','The relationship between virtue and happiness','What truly matters in decision-making'],errorsPrevented:['Over-attachment to outcomes','Blame and resentment','Seeking happiness through external goods','Loss of agency to circumstances'],whenNotToUse:'When external outcomes genuinely matter for survival. When detachment becomes passivity.',historicalExample:'Marcus Aurelius maintained equanimity while facing plague, war, and political turmoil by focusing on virtue rather than circumstances.',relatedModels:['epistemic-humility','circle-of-competence']},
+  {id:'inversion-thinking',name:'Inversion Thinking',thinker:'Carl Jacobi',era:'industrial',year:'1841',domain:'strategy',lens:'risk',confidence:'high',description:'Solving problems by inverting them—asking "what would cause failure?" rather than "how do I succeed?"',tags:['Problem-Solving','Strategy','Risk Management'],contextMatch:['high-stakes','uncertainty','risk'],youtubeId:'vYEfR-SSRV4',youtubeQuery:'inversion thinking mental model Charlie Munger',whatItIs:'The problem-solving approach of examining the inverse of a goal: instead of asking how to achieve X, ask what would prevent X or cause the opposite.',whyExists:'Inverting problems often reveals obstacles and failure modes that forward thinking misses.',coreMechanism:['Invert the problem statement','List ways the inversion could occur','Identify what prevents those outcomes','Apply those preventions to original goal'],clarifies:['Hidden failure modes and risks','Unstated assumptions in original problem','Complete solution sets','What truly matters for success'],errorsPrevented:['Blind spots in planning','Over-optimism bias','Incompleteness in problem-solving','Focusing on irrelevant factors'],whenNotToUse:'When inversion genuinely obscures the problem. When positive framing is essential for motivation.',historicalExample:'Instead of "How do I build a successful company?" ask "What would cause a company to fail?" This reveals: poor customer focus, cash flow problems, terrible culture.',relatedModels:['pre-mortem','epistemic-humility']},
+  {id:'prisoner-dilemma',name:"Prisoner's Dilemma",thinker:'Merrill Flood & Melvin Dresher',era:'digital',year:'1950',domain:'economics',lens:'coordination',confidence:'high',description:'A game theory model showing how individual incentives can lead to collectively suboptimal outcomes.',tags:['Game Theory','Coordination','Incentives'],contextMatch:['multi-stakeholder','incentives','coordination'],youtubeId:'t9Lo2fgxWHw',youtubeQuery:"prisoner's dilemma game theory explained",whatItIs:"A symmetric game where two parties can either cooperate or defect. Individual incentives favor defection even though mutual cooperation yields better outcomes.",whyExists:'Models a fundamental tension between individual and collective rationality.',coreMechanism:['Each player has incentive to defect regardless of other choice','Both defecting yields worse outcome than mutual cooperation','Cooperation is unstable because defection is always beneficial','Mutual defection becomes equilibrium despite Pareto-inferior outcome'],clarifies:['Why cooperation breaks down without enforcement','The cost of trust violations','Why regulation or repeated interaction matters'],errorsPrevented:['Assuming rationality always leads to optimal outcomes','Naive trust in one-shot interactions'],whenNotToUse:'In truly repeated interactions with reputation concerns.',historicalExample:'Arms races, price wars, fishing commons—all follow prisoner dilemma dynamics.',relatedModels:['zero-sum-bias','carrying-capacity']},
+  {id:'pareto-principle',name:'Pareto Principle (80/20)',thinker:'Vilfredo Pareto',era:'industrial',year:'1906',domain:'economics',lens:'asymmetry',confidence:'high',description:'In many phenomena, roughly 80% of effects come from 20% of causes. Focus on high-leverage factors.',tags:['Economics','Optimization','Prioritization'],contextMatch:['high-stakes','time-pressure'],youtubeId:'gfPjKs1R3ZQ',youtubeQuery:'Pareto principle 80 20 rule explained',whatItIs:'The observation that in many real-world distributions, a small number of causes account for the majority of effects.',whyExists:'Power-law distributions are ubiquitous in nature, economics, and human systems.',coreMechanism:['Effects follow power-law distribution','Small minority of causes drive majority of results','Identifying the vital few enables disproportionate impact'],clarifies:['Why optimization should target bottlenecks','The difference between effort and impact','Resource allocation strategy'],errorsPrevented:['Spreading effort evenly','Treating all causes as equally important'],whenNotToUse:'When all factors truly are equally important.',historicalExample:'80% of wealth held by 20% of people. 80% of revenue from 20% of customers.',relatedModels:['network-effects','moat-competitive-advantage']},
+  {id:'second-order-thinking',name:'Second-Order Thinking',thinker:'Ray Dalio',era:'digital',year:'1992',domain:'strategy',lens:'time',confidence:'high',description:'Thinking through the consequences of actions beyond the immediate, obvious first-order effects.',tags:['Systems Thinking','Strategy','Long-term'],contextMatch:['long-term','multi-stakeholder','irreversible'],youtubeId:'9NRaFAOC5dA',youtubeQuery:'second order thinking mental model Howard Marks',whatItIs:'The practice of examining not just immediate effects of an action but the chain of consequences that follow.',whyExists:'First-order thinking is intuitive but often misses crucial dynamics.',coreMechanism:['Identify immediate first-order effect','Trace consequences (second-order)','Continue chain to tertiary effects','Weight decisions by total chain'],clarifies:['Why obvious solutions often fail','Unintended consequences','Complex system dynamics'],errorsPrevented:['Unintended negative consequences','Creating new problems while solving old ones','Short-termism'],whenNotToUse:'When immediate action is essential.',historicalExample:'Price controls (first-order: lower prices; second-order: shortage, black markets, reduced supply).',relatedModels:['carrying-capacity','planning-fallacy']},
+  {id:'regret-minimization',name:'Regret Minimization Framework',thinker:'Jeff Bezos',era:'digital',year:'1997',domain:'business',lens:'optionality',confidence:'high',description:'Making decisions by projecting to old age and minimizing regret rather than maximizing current comfort.',tags:['Decision-Making','Entrepreneurship','Life Strategy'],contextMatch:['high-stakes','irreversible','long-term'],youtubeId:'jwG_qR6XmDQ',youtubeQuery:'Jeff Bezos regret minimization framework',whatItIs:'A decision framework where you imagine yourself at 80 and ask which choice you would regret less, prioritizing growth over comfort.',whyExists:'Developed as antidote to risk aversion. Most people regret risks not taken more than risks taken.',coreMechanism:['Project yourself to old age','Imagine looking back on decisions','Identify choices you would regret','Prioritize avoiding those regrets'],clarifies:['The role of regret in decision-making','Difference between comfort and fulfillment'],errorsPrevented:['Excessive risk aversion','Prioritizing short-term comfort over growth'],whenNotToUse:'When stakes are existential or could harm dependents.',historicalExample:"Bezos' 1997 decision to leave Wall Street and start Amazon was regret-minimization in action.",relatedModels:['hyperbolic-discounting','loss-aversion']},
+  {id:'moat-competitive-advantage',name:'Economic Moat (Competitive Advantage)',thinker:'Warren Buffett',era:'digital',year:'1983',domain:'business',lens:'power',confidence:'high',description:'Identifying defensible, sustainable competitive advantages that protect against competition.',tags:['Business','Strategy','Economics'],contextMatch:['high-stakes','long-term'],youtubeId:'tSGzCp1yxOY',youtubeQuery:'Warren Buffett economic moat competitive advantage',whatItIs:'A moat is a durable competitive advantage—brand, network effects, scale, switching costs—that allows sustained profitability.',whyExists:'Most competitive advantages erode quickly.',coreMechanism:['Identify source of competitive advantage','Assess durability and defensibility','Evaluate difficulty for competitors to replicate','Reinvest to strengthen moat'],clarifies:['Why some companies sustain margins','Sources of pricing power','What creates sustainable returns'],errorsPrevented:['Overvaluing businesses without moats','Assuming current advantage is permanent'],whenNotToUse:'In rapidly changing industries. In early-stage ventures.',historicalExample:"Coca-Cola's moat: brand strength, distribution, scale—allows pricing power competitors cannot match.",relatedModels:['network-effects','pareto-principle']},
+  {id:'filter-bubble',name:'Filter Bubble',thinker:'Eli Pariser',era:'digital',year:'2011',domain:'technology',lens:'asymmetry',confidence:'high',description:'Algorithmic personalization creates self-reinforcing information silos that limit exposure to diverse perspectives.',tags:['Technology','Media','Society'],contextMatch:['uncertainty','feedback'],youtubeId:'B8ofWFx525s',youtubeQuery:'Eli Pariser filter bubble TED talk',whatItIs:"The phenomenon where recommendation algorithms show users content similar to what they've previously engaged with, creating echo chambers.",whyExists:'Algorithms optimize for engagement. Confirming existing beliefs is more engaging than challenging them.',coreMechanism:['Algorithm observes user preferences','Personalizes content based on past consumption','Users see more of what they already like','Polarization increases over time'],clarifies:['How technology can reduce diversity of thought','The problem of engagement-driven optimization'],errorsPrevented:['Assuming you see representative information','Overconfidence in your worldview'],whenNotToUse:'When personalization genuinely serves users (medical, technical topics).',historicalExample:'Social media users increasingly see only content confirming their political views, leading to polarization.',relatedModels:['disconfirmation-bias','identity-salience']},
+  {id:'leverage-margin-of-safety',name:'Margin of Safety',thinker:'Benjamin Graham',era:'industrial',year:'1949',domain:'finance',lens:'risk',confidence:'high',description:'Only investing when price is significantly below intrinsic value, building in protection against errors.',tags:['Investing','Risk Management','Finance'],contextMatch:['high-stakes','uncertainty','long-term'],youtubeId:'fmSkQXPmZDI',youtubeQuery:'margin of safety Benjamin Graham value investing',whatItIs:'Purchase assets only when their price is substantially below estimated value, creating a cushion for error.',whyExists:'Developed from experience of great losses.',coreMechanism:['Estimate intrinsic value carefully','Only buy when price is significantly lower','The discount provides margin of error'],clarifies:['Why perfect information is unnecessary','The role of uncertainty in pricing'],errorsPrevented:['Overpaying for assets','Catastrophic losses from single mistakes'],whenNotToUse:'In strong bull markets where everything is overpriced.',historicalExample:"Graham's Depression-era investments purchased stocks at 1/3 of calculated value.",relatedModels:['antifragile','loss-aversion']},
+  {id:'network-effects',name:'Network Effects',thinker:"Metcalfe's Law",era:'digital',year:'1980',domain:'technology',lens:'power',confidence:'high',description:'The value of a network increases exponentially with each additional user, creating winner-take-most dynamics.',tags:['Technology','Economics','Strategy'],contextMatch:['high-stakes','long-term'],youtubeId:'vog1BZ5_YSo',youtubeQuery:'network effects explained business strategy',whatItIs:'Network effects occur when the value of a platform increases with each additional user, creating exponential value growth.',whyExists:'In network businesses, each new user makes the network more valuable for all.',coreMechanism:['Platform value depends on user base','Each new user makes platform more valuable','More valuable platform attracts more users','Winner emerges as network consolidates'],clarifies:['Why some platforms achieve dominance','How winner-take-most markets form'],errorsPrevented:['Expecting linear growth in network businesses','Not reaching critical mass'],whenNotToUse:'In non-network businesses where value is self-contained.',historicalExample:'Facebook: as more friends joined, the network became more valuable, creating powerful barrier to competition.',relatedModels:['moat-competitive-advantage','pareto-principle']},
+  {id:'antifragile',name:'Antifragility',thinker:'Nassim Taleb',era:'digital',year:'2012',domain:'strategy',lens:'risk',confidence:'high',description:'Systems that gain from disorder and volatility, becoming stronger through stress and challenges.',tags:['Risk Management','Strategy','Systems'],contextMatch:['uncertainty','long-term'],youtubeId:'S3REdLZ8Xis',youtubeQuery:'Nassim Taleb antifragile explained',whatItIs:'Beyond robustness—systems that actually improve when subjected to stress, volatility, and disorder.',whyExists:'Evolution, learning, and innovation benefit from stressors.',coreMechanism:['Small stressors build capacity','System strengthens from challenges','Redundancy at sub-optimality level','Optionality creates upside to uncertainty'],clarifies:['Why optimization can create fragility','How to benefit from volatility'],errorsPrevented:['Over-optimization reducing robustness','Complacency from perceived stability'],whenNotToUse:'When actual fragility exists. When stressors would cause catastrophic failure.',historicalExample:'Organisms stressed by harsh environments develop adaptive capacity. Muscles break down and repair stronger.',relatedModels:['leverage-margin-of-safety','carrying-capacity']},
+  {id:'zero-sum-bias',name:'Zero-Sum Bias',thinker:'David Landes',era:'industrial',year:'1969',domain:'economics',lens:'incentives',confidence:'high',description:"Mistakenly viewing situations as zero-sum when they actually offer mutual gains through trade.",tags:['Economics','Negotiation','Strategy'],contextMatch:['multi-stakeholder','incentives'],youtubeId:'Ky8ZRzfwV0Y',youtubeQuery:'zero sum thinking bias economics explained',whatItIs:"The cognitive bias of assuming one party's gain must be another's loss.",whyExists:'Evolution in competitive environments bred zero-sum thinking, but most real-world situations offer gains from trade.',coreMechanism:["Assume other's gain is your loss",'Miss opportunities for mutual benefit','Both parties worse off than through trade'],clarifies:['Why trade is mutually beneficial','The difference between zero-sum and positive-sum games'],errorsPrevented:['Unnecessary conflict','Foregone mutual gains'],whenNotToUse:'In genuinely zero-sum games (sports, war).',historicalExample:'Trade between nations: both countries gain through specialization and exchange.',relatedModels:['prisoner-dilemma','reciprocity-principle']},
+  {id:'epistemic-humility',name:'Epistemic Humility',thinker:'Karl Popper',era:'digital',year:'1945',domain:'science',lens:'ethics',confidence:'high',description:'Acknowledging the limits of knowledge and the fallibility of expertise, maintaining openness to revision.',tags:['Philosophy','Science','Decision-Making'],contextMatch:['uncertainty','long-term','ethical'],youtubeId:'5f8N-dGHs2o',youtubeQuery:'epistemic humility intellectual humility explained',whatItIs:'A stance of intellectual humility recognizing that current knowledge may be incomplete or wrong and remaining open to contradictory evidence.',whyExists:'History shows experts frequently wrong. Science advances through falsification.',coreMechanism:['Recognize limits of knowledge','Seek disconfirming evidence','Update beliefs based on new information','Hold conclusions provisionally'],clarifies:['Why expertise is fallible','How science actually advances'],errorsPrevented:['Overconfidence in incomplete knowledge','Confirmation bias','Closed-mindedness'],whenNotToUse:'When action requires commitment. When uncertainty is paralyzing.',historicalExample:'Scientific revolution: Copernicus, Newton, Darwin advanced by challenging established certainties.',relatedModels:['dunning-kruger','base-rate-fallacy']},
+  {id:'circle-of-competence',name:'Circle of Competence',thinker:'Warren Buffett',era:'digital',year:'1990',domain:'strategy',lens:'risk',confidence:'high',description:'Focusing decisions and investments within areas of genuine expertise while avoiding those outside.',tags:['Decision-Making','Risk','Expertise'],contextMatch:['uncertainty','high-stakes'],youtubeId:'2_SBozVQHtw',youtubeQuery:'circle of competence Warren Buffett Charlie Munger',whatItIs:'The practice of consciously limiting decisions to areas where you have deep knowledge and expertise.',whyExists:'Overconfidence and the illusion of competence lead to poor decisions.',coreMechanism:['Define areas of genuine expertise','Distinguish competence from overconfidence','Focus decisions within circle','Enlarge circle slowly through learning'],clarifies:['Importance of knowing your limits','How specialization creates advantage'],errorsPrevented:['Confident decisions in areas of ignorance','Overextension into unfamiliar domains'],whenNotToUse:'When forced to act outside competence.',historicalExample:'Buffett avoided technology stocks for decades, staying within finance and industrial competence.',relatedModels:['dunning-kruger','epistemic-humility']},
+  {id:'base-rate-fallacy',name:'Base Rate Neglect',thinker:'Tversky & Kahneman',era:'digital',year:'1973',domain:'science',lens:'feedback',confidence:'high',description:'Overweighting specific evidence while underweighting background probability rates when making judgments.',tags:['Statistics','Bias','Reasoning'],contextMatch:['uncertainty'],youtubeId:'i1sbpWrRBow',youtubeQuery:'base rate fallacy statistics thinking explained',whatItIs:'The tendency to ignore statistical base rates when evaluating specific cases.',whyExists:'Vivid specific information is more psychologically salient than abstract statistics.',coreMechanism:['Ignore base rate statistics','Weight specific details heavily','Make judgment without proper statistical adjustment'],clarifies:['Why intuitive judgments can be biased','Role of base rates in prediction'],errorsPrevented:['Overconfident predictions','Over-diagnosing rare conditions'],whenNotToUse:'When base rate is truly irrelevant.',historicalExample:'If a person is introverted, most guess "librarian" ignoring that accountants far outnumber librarians.',relatedModels:['availability-heuristic','epistemic-humility']},
+  {id:'disconfirmation-bias',name:'Disconfirmation Bias',thinker:'Festinger & Karpelowitz',era:'digital',year:'1961',domain:'science',lens:'feedback',confidence:'high',description:'Tendency to reject disconfirming evidence more strongly than accepting confirming evidence.',tags:['Psychology','Bias','Reasoning'],contextMatch:['uncertainty'],youtubeId:'T2JBkO1QfO4',youtubeQuery:'confirmation bias psychology explained',whatItIs:'People more readily accept confirming evidence and aggressively dismiss contradicting evidence.',whyExists:'Cognitive consistency drive. Challenged beliefs trigger defensive processing.',coreMechanism:['Hold belief or theory','Accept confirming evidence readily','Question validity of disconfirming evidence','Belief perseveres against evidence'],clarifies:['Why beliefs are so persistent','Asymmetry in evidence evaluation'],errorsPrevented:['Belief persistence despite clear evidence','Inability to update views'],whenNotToUse:'When the disconfirming evidence is genuinely weak.',historicalExample:'New scientific theories contradicting established views meet fierce resistance while confirming evidence is accepted widely.',relatedModels:['filter-bubble','dunning-kruger']},
+  {id:'reciprocity-principle',name:'Reciprocity Principle',thinker:'Robert Cialdini',era:'digital',year:'1984',domain:'psychology',lens:'incentives',confidence:'high',description:'Humans have deep drive to return favors and reciprocate treatment, creating obligation and social bonding.',tags:['Psychology','Influence','Behavior'],contextMatch:['multi-stakeholder','incentives'],youtubeId:'q9xRJ4Akoqw',youtubeQuery:'reciprocity principle Cialdini influence psychology',whatItIs:'The social norm that creates obligation to reciprocate when others do something for us.',whyExists:"Reciprocity enables cooperation at scale. It's been adaptive for human societies.",coreMechanism:['Person A does favor for Person B','Creates feeling of obligation in Person B','Often reciprocation exceeds original favor','Cycle continues building relationship'],clarifies:['How obligation and favor create bonds','Social foundations of cooperation'],errorsPrevented:['Missing opportunities to create obligation','Ignoring social exchange dynamics'],whenNotToUse:'When reciprocity might create unequal relationship.',historicalExample:'Free samples in stores increase purchases. Gift-giving creates relationship obligation.',relatedModels:['zero-sum-bias','prisoner-dilemma']},
+  {id:'dunning-kruger',name:'Dunning-Kruger Effect',thinker:'Dunning & Kruger',era:'digital',year:'1999',domain:'psychology',lens:'feedback',confidence:'high',description:'Incompetent people overestimate their competence while experts underestimate theirs.',tags:['Psychology','Bias','Overconfidence'],contextMatch:['uncertainty'],youtubeId:'pOLmD_WVY-E',youtubeQuery:'Dunning Kruger effect psychology bias explained',whatItIs:'The cognitive bias where lacking competence prevents recognition of that lack, leading to false confidence.',whyExists:'Requires skill to recognize lack of skill.',coreMechanism:['Low competence prevents recognition of lack','Lack of knowledge creates overconfidence','As competence grows, confidence initially drops','Experts acknowledge vast knowledge they lack'],clarifies:['Why novices are overconfident','Why experts are more cautious'],errorsPrevented:['Overconfident decision-making','Ignoring expertise'],whenNotToUse:"Doesn't apply uniformly to all domains or people.",historicalExample:'Unskilled chess players are highly confident. Expert players recognize complexity and remain more cautious.',relatedModels:['circle-of-competence','epistemic-humility']},
+  {id:'hyperbolic-discounting',name:'Hyperbolic Discounting',thinker:'George Ainslie',era:'digital',year:'1975',domain:'psychology',lens:'time',confidence:'high',description:'Disproportionate preference for immediate rewards over future rewards, even when future rewards are larger.',tags:['Psychology','Economics','Time Preference'],contextMatch:['long-term'],youtubeId:'MYkx1SKs0Mg',youtubeQuery:'hyperbolic discounting present bias behavioral economics',whatItIs:'The tendency to value immediate gratification far more than future rewards, discounting the future non-linearly.',whyExists:'Evolutionary adaptation to scarcity and survival uncertainty.',coreMechanism:['Small immediate reward vs. large future reward','Disproportionate preference for immediate reward','As reward approaches, preference intensifies'],clarifies:['Why people procrastinate despite knowing better','Gap between intentions and actions'],errorsPrevented:['Excessive focus on immediate gratification','Undersaving and underinvestment'],whenNotToUse:'When immediate gratification is actually optimal.',historicalExample:'$100 today vs. $150 in a month — many choose $100. But $100 in 12 months vs. $150 in 13 months — many choose $150.',relatedModels:['regret-minimization','planning-fallacy']},
+  {id:'availability-heuristic',name:'Availability Heuristic',thinker:'Tversky & Kahneman',era:'digital',year:'1973',domain:'psychology',lens:'feedback',confidence:'high',description:'Judging likelihood of events based on how readily examples come to mind rather than actual probability.',tags:['Psychology','Bias','Reasoning'],contextMatch:['uncertainty'],youtubeId:'oQFMH2BxEWk',youtubeQuery:'availability heuristic Kahneman bias explained',whatItIs:'Estimating probability based on ease of recalling examples, rather than actual statistical probability.',whyExists:'Mental accessibility correlates with frequency in normal environments but decouples through media and vividness.',coreMechanism:['Event occurs frequently or is vivid','Examples are easily recalled','Ease of recall is mistaken for frequency','Probability overestimated'],clarifies:['Why media creates distorted risk perception','How to reason about probability correctly'],errorsPrevented:['Overestimating salient risks','Underestimating common risks'],whenNotToUse:'When salience and frequency genuinely correlate.',historicalExample:'After plane crash news coverage, people overestimate flying risk despite flying being safer than driving.',relatedModels:['base-rate-fallacy','disconfirmation-bias']},
+  {id:'ikigai-purpose',name:'Ikigai (Purpose & Meaning)',thinker:'Japanese Philosophy',era:'medieval',year:'1960',domain:'love',lens:'ethics',confidence:'medium',description:"Finding the intersection of passion, talent, service, and compensation creates meaningful, sustainable life.",tags:['Life Purpose','Fulfillment','Work-Life'],contextMatch:['long-term','ethical'],youtubeId:'pk-PcJS2QaU',youtubeQuery:'ikigai purpose meaning explained japanese philosophy',whatItIs:'Ikigai represents the intersection of what you love, what you are good at, what the world needs, and what creates income.',whyExists:'Japan traditionally values finding deep purpose. Ikigai provides framework for integrating passion, skill, service, and livelihood.',coreMechanism:['Identify what you love (passion)','Identify what you are good at (talent)','Identify what world needs (service)','Identify what pays (compensation)','Find intersection of all four'],clarifies:['How to find meaningful work','Integration of fulfillment and compensation'],errorsPrevented:['Choosing passion without talent','Pursuing compensation only','Burnout from imbalance'],whenNotToUse:'When survival requires compromise.',historicalExample:'A doctor who loves medicine, is excellent, serves vulnerable populations, and earns well — maximized ikigai.',relatedModels:['stoic-virtue','regret-minimization']},
+  {id:'metabolic-health',name:'Metabolic Health Framework',thinker:'Modern Medicine',era:'digital',year:'2000',domain:'health',lens:'feedback',confidence:'medium',description:'Health determined by metabolic markers (glucose control, lipid profile, inflammation) more than BMI alone.',tags:['Health','Medicine','Fitness'],contextMatch:['long-term'],youtubeId:'kIgEOGQlQ9Y',youtubeQuery:'metabolic health biomarkers glucose insulin explained',whatItIs:'Framework focusing on metabolic biomarkers: glucose homeostasis, lipid profile, blood pressure, inflammation, not just weight.',whyExists:'Many people with healthy BMI have poor metabolic health.',coreMechanism:['Monitor key biomarkers','Glucose control and insulin sensitivity','Lipid profiles indicating risk','Target interventions based on markers'],clarifies:['Why weight alone is insufficient','Importance of metabolic indicators'],errorsPrevented:['Focus on appearance vs. metabolic health','Missing early disease markers'],whenNotToUse:'Does not replace need for fitness and lifestyle.',historicalExample:'Person with normal BMI but elevated glucose, high triglycerides, and inflammation — metabolically unhealthy despite appearance.',relatedModels:['second-order-thinking','carrying-capacity']},
+  {id:'trauma-informed-care',name:'Trauma-Informed Care',thinker:'Bessel van der Kolk',era:'digital',year:'1994',domain:'health',lens:'ethics',confidence:'high',description:'Recognizing impact of trauma on behavior and physiology, designing interventions that do not re-traumatize.',tags:['Mental Health','Psychology','Care'],contextMatch:['ethical'],youtubeId:'53RX2ESIqLM',youtubeQuery:'trauma informed care Bessel van der Kolk explained',whatItIs:'Framework recognizing that many behaviors stem from trauma history, and treatment must not replicate trauma.',whyExists:'Traditional approaches often re-traumatize.',coreMechanism:['Recognize trauma prevalence','Understand trauma impacts physiology','Design interactions preventing re-traumatization','Empower rather than coerce'],clarifies:['Root causes of many behaviors','Importance of safety in healing'],errorsPrevented:['Re-traumatization through interventions','Blame of trauma survivors'],whenNotToUse:'Does not mean avoiding necessary firmness or boundaries.',historicalExample:'Addressing behavior problems in foster children requires understanding trauma history, not just punishing behavior.',relatedModels:['stoic-virtue','ikigai-purpose']},
+  {id:'carrying-capacity',name:'Carrying Capacity (Limits to Growth)',thinker:'Meadows & Club of Rome',era:'industrial',year:'1972',domain:'environment',lens:'feedback',confidence:'high',description:'Every system has limits. Population and consumption cannot grow indefinitely without system collapse.',tags:['Ecology','Systems','Sustainability'],contextMatch:['long-term','irreversible'],youtubeId:'YAlgBsT7JNw',youtubeQuery:'carrying capacity limits to growth systems thinking',whatItIs:'The maximum population an environment can sustain indefinitely given available resources and waste absorption capacity.',whyExists:'Observable in all natural systems. Humans often ignore limits until collapse.',coreMechanism:['System has finite resources','Growth increases resource use and waste','Eventually growth hits limits','Collapse occurs if overshoot is severe'],clarifies:['Inevitability of limits','Why perpetual growth is impossible'],errorsPrevented:['Assuming infinite growth possible','Ignoring resource depletion'],whenNotToUse:'Does not mean no growth possible — sustainable growth within limits exists.',historicalExample:'Easter Island: population overshoot carrying capacity, resource depletion, collapse, mass death.',relatedModels:['prisoner-dilemma','second-order-thinking']},
+  {id:'cultural-evolution',name:'Cultural Evolution',thinker:'Richard Boyd',era:'digital',year:'1985',domain:'culture',lens:'time',confidence:'medium',description:'Cultures evolve through selection pressures similar to biology, through imitation and innovation rather than genetics.',tags:['Anthropology','Culture','Evolution'],contextMatch:['long-term'],youtubeId:'5NdMnlt2keE',youtubeQuery:'cultural evolution theory explained anthropology',whatItIs:'Cultural practices evolve through processes analogous to natural selection — some practices spread while others fade.',whyExists:'Cultures change systematically.',coreMechanism:['Cultural variation in practices','Differential adoption based on fitness','Successful practices spread through imitation','Failed practices decline'],clarifies:['How cultures change','Why some practices persist'],errorsPrevented:['Assuming cultures are static','Failed attempts to impose cultures'],whenNotToUse:'Does not deterministically predict cultural change.',historicalExample:'Agricultural societies spread where climate supported farming. Seafaring cultures spread in maritime regions.',relatedModels:['identity-salience','filter-bubble']},
+  {id:'just-world-bias',name:'Just-World Bias',thinker:'Melvin Lerner',era:'digital',year:'1965',domain:'psychology',lens:'feedback',confidence:'high',description:'Belief that people get what they deserve and outcomes are fair, leading to victim-blaming.',tags:['Psychology','Bias','Justice'],contextMatch:['ethical'],youtubeId:'VJaJ2oLqmhw',youtubeQuery:'just world hypothesis bias psychology explained',whatItIs:'The cognitive bias that outcomes are deserved and reflect character or effort, not circumstance.',whyExists:'Provides comforting sense of order. Reduces cognitive dissonance from witnessing injustice.',coreMechanism:['Observe bad outcome befalling person','Assume they deserved it','Avoid recognizing injustice','Maintain belief in just world'],clarifies:['Why injustice is tolerated','Victim-blaming mechanisms'],errorsPrevented:['Dismissing injustice through false attribution','Failing to address systemic problems'],whenNotToUse:'Does not mean outcomes are never deserved.',historicalExample:'Poor children labeled lazy when poverty often reflects structural factors.',relatedModels:['disconfirmation-bias','identity-salience']},
+  {id:'identity-salience',name:'Identity Salience & In-group Bias',thinker:'Henri Tajfel',era:'digital',year:'1970',domain:'identity',lens:'power',confidence:'high',description:'Highlighting group identity makes in-group bias stronger and out-group derogation more likely.',tags:['Psychology','Sociology','Identity'],contextMatch:['multi-stakeholder','power-dynamics'],youtubeId:'fLGrj3GxOfs',youtubeQuery:'Henri Tajfel social identity theory in-group out-group',whatItIs:'Making identity salient (conscious) increases preference for in-group members and bias against out-groups.',whyExists:'Identity is central to self-concept. Activation increases motivation to favor group.',coreMechanism:['Identity is activated','In-group identification strengthens','Preference for in-group increases','Bias against out-groups increases'],clarifies:['Why tribalism strengthens in conflicts','How identity politics operates'],errorsPrevented:['Underestimating tribal bias','Naive assumptions about cooperation'],whenNotToUse:'Does not mean identity is always salient.',historicalExample:'Lab experiment: randomly assigning people to groups creates immediate in-group bias and out-group derogation.',relatedModels:['filter-bubble','just-world-bias']},
+  {id:'attention-residue',name:'Attention Residue',thinker:'Sophie Leroy',era:'digital',year:'2009',domain:'psychology',lens:'time',confidence:'medium',description:'Part of attention remains on previous task when switching contexts, reducing effectiveness on new task.',tags:['Psychology','Productivity','Attention'],contextMatch:['time-pressure'],youtubeId:'',youtubeQuery:'attention residue task switching productivity Sophie Leroy',whatItIs:'Attention incompletely transfers between tasks, with cognitive residue remaining on the previous task, impairing new task performance.',whyExists:'Attention naturally persists on incomplete tasks and recent focuses.',coreMechanism:['Complete task with attention focused','Switch to new task','Previous task retains some attention','Working memory divided between tasks'],clarifies:['Cost of task switching','Why multitasking is ineffective','Importance of task closure'],errorsPrevented:['Excessive multitasking','Task-switching inefficiency','Attempting simultaneous complex tasks'],whenNotToUse:'Does not mean never switch tasks.',historicalExample:'Writer switching between projects without closure — attention to previous project impairs new work until refocus achieved.',relatedModels:['hyperbolic-discounting','planning-fallacy']},
+  {id:'loss-aversion',name:'Loss Aversion',thinker:'Kahneman & Tversky',era:'digital',year:'1979',domain:'psychology',lens:'risk',confidence:'high',description:'Pain of loss approximately twice the pleasure of equivalent gain, driving risk-averse behavior.',tags:['Psychology','Economics','Risk'],contextMatch:['uncertainty','high-stakes'],youtubeId:'AYiT0BZIJ8o',youtubeQuery:'loss aversion Kahneman Tversky prospect theory',whatItIs:'The asymmetry in how people evaluate gains vs. losses. Losses loom larger than equivalent gains.',whyExists:'Evolutionary advantage of loss aversion in scarce environments.',coreMechanism:['Losses feel approximately 2x as bad as gains feel good','People reject gambles even with positive expected value','Risk aversion results'],clarifies:['Why people are risk-averse','Reluctance to exit losing positions'],errorsPrevented:['Over-attachment to losing positions'],whenNotToUse:'When taking risks is essential for growth.',historicalExample:'50-50 chance of winning $100 or losing $100 is rejected because loss feels worse.',relatedModels:['regret-minimization','leverage-margin-of-safety']},
+  {id:'pre-mortem',name:'Pre-Mortem',thinker:'Gary Klein',era:'digital',year:'2007',domain:'strategy',lens:'risk',confidence:'high',description:'Before project launch, imagine it failed and identify likely causes, surfacing risks not caught by standard planning.',tags:['Risk Management','Planning','Strategy'],contextMatch:['high-stakes'],youtubeId:'MzTNMalfyhM',youtubeQuery:'pre mortem Gary Klein risk management strategy',whatItIs:'Team exercise: imagine the project has already failed and work backward to identify most likely failure causes.',whyExists:'Future-imagined failure surfaces different risks than forward-looking analysis.',coreMechanism:['Imagine project already failed','Work backward to identify failure causes','List likely failure modes','Plan to prevent identified modes'],clarifies:['Different failure modes than standard risk analysis','Hidden assumptions'],errorsPrevented:['Blind spots in planning','Overlooked failure modes'],whenNotToUse:'Does not prevent all failures.',historicalExample:'Software project pre-mortem might identify: scaling issues, data loss, key person departure — all missed by standard planning.',relatedModels:['inversion-thinking','second-order-thinking']},
+  {id:'planning-fallacy',name:'Planning Fallacy',thinker:'Kahneman & Tversky',era:'digital',year:'1979',domain:'psychology',lens:'time',confidence:'high',description:'Underestimating time, costs, and risks while overestimating benefits of future actions.',tags:['Psychology','Bias','Planning'],contextMatch:['time-pressure'],youtubeId:'1TXGJCHoAIM',youtubeQuery:'planning fallacy optimism bias project management',whatItIs:'Systematic underestimation of how long tasks will take, how much they will cost, and how likely problems are.',whyExists:'Optimism bias and focus on success scenario rather than realistic distribution.',coreMechanism:['Plan with optimistic assumptions','Ignore base rate of typical timelines','Focus on best-case scenario','Underestimate obstacles'],clarifies:['Why projects consistently overrun','Importance of reference class forecasting'],errorsPrevented:['Project failures from unrealistic planning','Budget overruns','Missed deadlines'],whenNotToUse:'Does not prevent all surprises.',historicalExample:'Sydney Opera House planned for 4 years, $7M — took 14 years, $102M.',relatedModels:['hyperbolic-discounting','pre-mortem']}
+];
+
+// VIDEO STORAGE
+function getVideoId(modelId) {
+  try { const s=JSON.parse(localStorage.getItem('mml_vids')||'{}'); if(s[modelId]) return s[modelId]; } catch(e){}
+  return (mentalModels.find(m=>m.id===modelId)||{}).youtubeId||'';
+}
+function setVideoId(modelId,vid) {
+  try { const s=JSON.parse(localStorage.getItem('mml_vids')||'{}'); if(vid) s[modelId]=vid; else delete s[modelId]; localStorage.setItem('mml_vids',JSON.stringify(s)); } catch(e){}
+}
+function extractYoutubeId(input) {
+  if(!input) return ''; input=input.trim();
+  if(/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+  const m=input.match(/[?&]v=([a-zA-Z0-9_-]{11})/)||input.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/)||input.match(/embed\/([a-zA-Z0-9_-]{11})/)||input.match(/shorts\/([a-zA-Z0-9_-]{11})/);
+  return m?m[1]:'';
+}
+
+// MODAL
+let modalModelId=null, currentModelId=null;
+function openModal() {
+  modalModelId=currentModelId;
+  const model=mentalModels.find(m=>m.id===modalModelId);
+  document.getElementById('modal-name').textContent=model?model.name:'';
+  document.getElementById('vid-input').value='';
+  document.getElementById('remove-vid-btn').classList.toggle('hidden',!getVideoId(modalModelId));
+  document.getElementById('video-modal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('vid-input').focus(),100);
+}
+function closeModal() { document.getElementById('video-modal').classList.add('hidden'); modalModelId=null; }
+function saveVideo() {
+  const input=document.getElementById('vid-input'), vid=extractYoutubeId(input.value);
+  if(!vid){input.style.borderColor='#ef4444';setTimeout(()=>{input.style.borderColor='rgba(168,153,104,0.3)'},1500);return;}
+  const model=mentalModels.find(m=>m.id===modalModelId);
+  const isUpdate=!!getVideoId(modalModelId);
+  setVideoId(modalModelId,vid); closeModal();
+  addLog('video', isUpdate ? `Video updated: ${model?model.name:'Model'}` : `Video set: ${model?model.name:'Model'}`, `YouTube ID: ${vid}`, [`https://youtu.be/${vid}`]);
+  if (adminTab === 'videos') renderVideoManager();
+  updateAdminStats();
+  showModelDetail(modalModelId);
+}
+function removeVideo() {
+  const model=mentalModels.find(m=>m.id===modalModelId);
+  setVideoId(modalModelId,null); closeModal();
+  addLog('video', `Video removed: ${model?model.name:'Model'}`, 'YouTube link was unlinked from this model.');
+  if (adminTab === 'videos') renderVideoManager();
+  updateAdminStats();
+  showModelDetail(modalModelId);
+}
+
+// PAGES
+let currentFilters={domain:'all',lens:'all',era:'all'}, searchQuery='';
+function showPage(name) {
+  document.querySelectorAll('.page-content').forEach(p=>p.classList.add('hidden'));
+  document.getElementById('page-'+name).classList.remove('hidden');
+  if(name==='library') renderModels();
+}
+
+function showModelDetail(modelId) {
+  currentModelId=modelId;
+  const model=mentalModels.find(m=>m.id===modelId);
+  if(!model) return;
+  const vid=getVideoId(modelId);
+  document.getElementById('detail-content').innerHTML=`
+    <div class="fade-in">
+      <div class="mb-8">
+        <div class="flex items-start justify-between gap-4 mb-3">
+          <h1 class="text-3xl md:text-4xl font-semibold heading-font" style="color:var(--text-primary)">${model.name}</h1>
+          <span class="shrink-0 px-3 py-1 text-xs rounded ${model.confidence==='high'?'confidence-high':'confidence-medium'}">${model.confidence==='high'?'High Confidence':'Medium Confidence'}</span>
+        </div>
+        <p class="text-lg" style="color:var(--text-secondary)">${[model.thinker, model.year].filter(Boolean).join(' · ') || '—'}</p>
+      </div>
+      ${vid?`<section class="mb-8"><div class="yt-wrap"><iframe src="https://www.youtube.com/embed/${vid}?rel=0&modestbranding=1" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe></div></section>`:`<section class="mb-8"><a href="https://www.youtube.com/results?search_query=${encodeURIComponent(model.youtubeQuery||model.name)}" target="_blank" rel="noopener" class="flex items-center gap-3 p-4 rounded-lg hover:opacity-90 transition-opacity" style="background:rgba(255,0,0,0.07);border:1px solid rgba(255,80,80,0.2)"><svg class="w-8 h-8 shrink-0" viewBox="0 0 24 24" fill="#ff0000"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg><div><p class="font-medium text-sm" style="color:var(--text-primary)">Find on YouTube</p><p class="text-xs mt-0.5" style="color:var(--text-secondary)">Search: "${model.youtubeQuery||model.name}"</p></div><svg class="w-4 h-4 ml-auto" style="color:var(--text-secondary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg></a></section>`}
+      <section class="mb-8"><h2 class="text-xl font-medium heading-font mb-3" style="color:var(--text-primary)">What This Model Is</h2><p class="leading-relaxed" style="color:var(--text-secondary)">${model.whatItIs}</p></section>
+      <div class="section-divider mb-8"></div>
+      <section class="mb-8"><h2 class="text-xl font-medium heading-font mb-3" style="color:var(--text-primary)">Why This Model Exists</h2><p class="leading-relaxed" style="color:var(--text-secondary)">${model.whyExists}</p></section>
+      <div class="section-divider mb-8"></div>
+      <section class="mb-8"><h2 class="text-xl font-medium heading-font mb-3" style="color:var(--text-primary)">Core Logic / Mechanism</h2><ul class="space-y-2">${model.coreMechanism.map(i=>`<li class="flex items-start gap-3"><span class="mt-2 w-1.5 h-1.5 rounded-full shrink-0" style="background:var(--accent-gold)"></span><span style="color:var(--text-secondary)">${i}</span></li>`).join('')}</ul></section>
+      <div class="section-divider mb-8"></div>
+      <section class="mb-8"><h2 class="text-xl font-medium heading-font mb-3" style="color:var(--text-primary)">What It Clarifies</h2><ul class="space-y-2">${model.clarifies.map(i=>`<li class="flex items-start gap-3"><span class="mt-2 w-1.5 h-1.5 rounded-full shrink-0" style="background:var(--accent-gold);opacity:0.6"></span><span style="color:var(--text-secondary)">${i}</span></li>`).join('')}</ul></section>
+      <div class="section-divider mb-8"></div>
+      <section class="mb-8"><h2 class="text-xl font-medium heading-font mb-3" style="color:var(--text-primary)">Typical Errors It Prevents</h2><div class="flex flex-wrap gap-2">${model.errorsPrevented.map(e=>`<span class="px-3 py-1.5 text-sm rounded" style="background:rgba(90,123,154,0.15);color:var(--text-secondary)">${e}</span>`).join('')}</div></section>
+      <div class="section-divider mb-8"></div>
+      <section class="mb-8"><h2 class="text-xl font-medium heading-font mb-3" style="color:var(--text-primary)">When NOT to Use This Model</h2><p class="leading-relaxed" style="color:var(--text-secondary)">${model.whenNotToUse}</p></section>
+      ${model.historicalExample ? `<div class="section-divider mb-8"></div><section class="mb-10 p-6 rounded-lg" style="background:var(--bg-card)"><h2 class="text-xl font-medium heading-font mb-3" style="color:var(--text-primary)">Historical Application</h2><p class="leading-relaxed" style="color:var(--text-secondary)">${model.historicalExample}</p></section>` : ''}
+      <section><h2 class="text-xl font-medium heading-font mb-4" style="color:var(--text-primary)">Related Models</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-3">${model.relatedModels.map(rid=>{const r=mentalModels.find(m=>m.id===rid);if(!r)return'';return`<button onclick="showModelDetail('${r.id}')" class="text-left p-4 rounded-lg card-hover" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.1)"><span class="font-medium" style="color:var(--text-primary)">${r.name}</span><p class="text-sm mt-1" style="color:var(--text-secondary)">${r.thinker||'Unknown'}</p></button>`;}).join('')}</div></section>
+    </div>`;
+  showPage('detail');
+}
+
+// FILTERS
+function toggleFilter(type,val) {
+  currentFilters[type]=val;
+  document.querySelectorAll(`[data-filter="${type}"]`).forEach(b=>b.classList.toggle('active',b.dataset.value===val));
+  renderModels();
+}
+function handleSearch(q){searchQuery=q.toLowerCase();renderModels();}
+function getFilteredModels(){
+  return mentalModels.filter(m=>(currentFilters.domain==='all'||m.domain===currentFilters.domain)&&(currentFilters.lens==='all'||m.lens===currentFilters.lens)&&(currentFilters.era==='all'||m.era===currentFilters.era)&&(!searchQuery||m.name.toLowerCase().includes(searchQuery)||(m.thinker||'').toLowerCase().includes(searchQuery)||m.description.toLowerCase().includes(searchQuery)||m.tags.some(t=>t.toLowerCase().includes(searchQuery))));
+}
+
+// RENDER CARDS
+function renderModels() {
+  const grid=document.getElementById('models-grid'), noRes=document.getElementById('no-results'), filtered=getFilteredModels();
+  if(!filtered.length){grid.innerHTML='';noRes.classList.remove('hidden');return;}
+  noRes.classList.add('hidden');
+  grid.innerHTML=filtered.map(model=>{
+    const thinkerLine = [model.thinker, model.year].filter(Boolean).join(' · ') || '—';
+    return `<article onclick="showModelDetail('${model.id}')" class="p-5 rounded-lg cursor-pointer card-hover" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.08)">
+      <h3 class="text-base font-medium heading-font mb-1 leading-snug" style="color:var(--text-primary)">${model.name}</h3>
+      <p class="text-xs mb-2" style="color:var(--accent-gold);opacity:0.8">${thinkerLine}</p>
+      <p class="text-xs uppercase tracking-wider mb-2" style="color:var(--text-secondary)">${model.lens.charAt(0).toUpperCase()+model.lens.slice(1)} lens</p>
+      <p class="text-sm mb-3 line-clamp-2" style="color:var(--text-secondary)">${model.description}</p>
+      <div class="flex flex-wrap gap-1.5">${model.tags.slice(0,3).map(t=>`<span class="tag-chip px-2 py-1 rounded" style="background:rgba(168,153,104,0.1);color:var(--text-secondary)">${t}</span>`).join('')}</div>
+    </article>`;
+  }).join('');
+}
+
+// CONTEXT MATCHING
+function setupContextCheckboxes(){document.querySelectorAll('.context-checkbox').forEach(cb=>cb.addEventListener('change',updateContextResults));}
+function updateContextResults(){
+  const checked=Array.from(document.querySelectorAll('.context-checkbox:checked')).map(c=>c.value);
+  const rc=document.getElementById('context-results');
+  if(!checked.length){rc.innerHTML='<p class="text-sm" style="color:var(--text-secondary)">Select decision characteristics above to see recommended mental models.</p>';return;}
+  const scored=mentalModels.map(m=>({...m,score:m.contextMatch.filter(c=>checked.includes(c)).length})).filter(m=>m.score>0).sort((a,b)=>b.score-a.score).slice(0,6);
+  if(!scored.length){rc.innerHTML='<p class="text-sm" style="color:var(--text-secondary)">No models strongly match this combination. Try adjusting your selection.</p>';return;}
+  rc.innerHTML=scored.map(m=>`<button onclick="showModelDetail('${m.id}')" class="flex items-start gap-3 p-3 rounded-lg text-left hover:opacity-80 transition-opacity" style="background:rgba(168,153,104,0.05)"><div class="flex-1"><span class="font-medium" style="color:var(--text-primary)">${m.name}</span><p class="text-sm mt-0.5" style="color:var(--text-secondary)">${m.description}</p></div><span class="text-xs px-2 py-1 rounded shrink-0" style="background:rgba(168,153,104,0.2);color:var(--accent-gold)">${m.score}/${checked.length} match</span></button>`).join('');
+}
+
+// UPLOAD / EXPORT
+let pendingModels=[];
+function switchUploadTab(tab){
+  const fs=document.getElementById('upload-file-section'),ts=document.getElementById('upload-text-section');
+  const ft=document.getElementById('tab-file'),tt=document.getElementById('tab-text');
+  if(tab==='file'){
+    fs.style.display='block';ts.style.display='none';
+    ft.style.background='rgba(168,153,104,0.2)';ft.style.color='var(--accent-gold)';
+    tt.style.background='transparent';tt.style.color='var(--text-secondary)';
+  } else {
+    fs.style.display='none';ts.style.display='block';
+    ft.style.background='transparent';ft.style.color='var(--text-secondary)';
+    tt.style.background='rgba(168,153,104,0.2)';tt.style.color='var(--accent-gold)';
+    document.getElementById('json-textarea').focus();
+  }
+}
+function handleTextInput(){
+  const txt=document.getElementById('json-textarea').value.trim();
+  if(!txt){showStatus('error','Please paste JSON content');return;}
+  try{
+    let d=JSON.parse(txt);
+    const raw=(Array.isArray(d)?d:[d]).map(convertModelFormat);
+    const {valid,skipped,notes}=validateModels(raw);
+    if(!valid.length){showStatus('error','No valid models found in JSON');addLog('error','Parse failed','No valid models found in pasted JSON.');return;}
+    pendingModels=valid;
+    showPreview(valid, skipped, notes, 'Pasted JSON');
+  }catch(e){showStatus('error','Invalid JSON: '+e.message);addLog('error','Invalid JSON',e.message);}
+}
+function handleDragOver(e){
+  e.preventDefault();
+  var a=document.getElementById('upload-area');
+  a.style.borderColor='rgba(168,153,104,0.8)';
+  a.style.background='rgba(168,153,104,0.07)';
+}
+function handleDragLeave(e){
+  e.preventDefault();
+  var a=document.getElementById('upload-area');
+  a.style.borderColor='rgba(168,153,104,0.3)';
+  a.style.background='rgba(168,153,104,0.02)';
+}
+function handleDrop(e){
+  e.preventDefault();
+  handleDragLeave(e);
+  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+}
+function handleFileSelect(e){
+  if(e.target.files.length) handleFile(e.target.files[0]);
+}
+function handleFile(file){
+  if(!file.name.endsWith('.json')){
+    showStatus('error','Please select a valid .json file');
+    addLog('error','Invalid file type','"'+file.name+'" is not a .json file.');
+    return;
+  }
+  // Show filename
+  var nameEl=document.getElementById('file-chosen-name');
+  if(nameEl){nameEl.textContent='📄 '+file.name+' ('+Math.round(file.size/1024)+' KB)';nameEl.classList.remove('hidden');}
+  showStatus('info','Reading '+file.name+'...');
+  var r=new FileReader();
+  r.onload=function(ev){
+    try{
+      var d=JSON.parse(ev.target.result);
+      var raw=(Array.isArray(d)?d:[d]).map(convertModelFormat);
+      var result=validateModels(raw);
+      var valid=result.valid, skipped=result.skipped, notes=result.notes;
+      if(!valid.length){
+        showStatus('error','No valid models found in file');
+        addLog('error','Parse failed','No valid models found in "'+file.name+'".');
+        return;
+      }
+      addLog('import','File loaded: '+file.name,valid.length+' model'+(valid.length!==1?'s':'')+' ready'+(skipped.length?' · '+skipped.length+' skipped':'')+'.');
+      pendingModels=valid;
+      showPreview(valid, skipped, notes, file.name);
+    }catch(err){
+      showStatus('error','Invalid JSON: '+err.message);
+      addLog('error','Parse error in '+file.name,err.message);
+    }
+  };
+  r.onerror=function(){showStatus('error','Could not read file');};
+  r.readAsText(file);
+}
+function normalizeYear(y) {
+  if (!y && y !== 0) return null;
+  const s = String(y).trim();
+  if (s === 'null' || s === '') return null;
+  const n = parseInt(s, 10);
+  if (isNaN(n)) return s; // keep strings like "400 BCE"
+  if (n < 0) return Math.abs(n) + ' BCE';
+  return s;
+}
+
+function convertModelFormat(m) {
+  return {
+    id: m.id || '',
+    name: m.name || '',
+    thinker: m.thinker || (Array.isArray(m.thinkers) ? m.thinkers[0] : null) || null,
+    era: m.era || 'digital',
+    year: normalizeYear(m.year),
+    domain: m.domain || 'strategy',
+    lens: m.lens || 'power',
+    confidence: m.confidence || 'medium',
+    description: m.description || '',
+    tags: Array.isArray(m.tags) ? m.tags : [],
+    contextMatch: Array.isArray(m.contextMatch) ? m.contextMatch : [],
+    youtubeId: m.youtubeId || '',
+    youtubeQuery: m.youtubeQuery || (m.name + ' mental model explained'),
+    whatItIs: m.whatItIs || '',
+    whyExists: m.whyExists || '',
+    coreMechanism: Array.isArray(m.coreMechanism) ? m.coreMechanism : [],
+    clarifies: Array.isArray(m.clarifies) ? m.clarifies : [],
+    errorsPrevented: Array.isArray(m.errorsPrevented) ? m.errorsPrevented : [],
+    whenNotToUse: m.whenNotToUse || '',
+    historicalExample: m.historicalExample || null,
+    relatedModels: Array.isArray(m.relatedModels) ? m.relatedModels : []
+  };
+}
+
+// Validate a parsed model array and return {valid, skipped, notes}
+function validateModels(models) {
+  const ids = new Set();
+  const skippedList = [];
+  const valid = [];
+  models.forEach((m, i) => {
+    if (!m.id) { skippedList.push('Row ' + (i+1) + ': missing "id"'); return; }
+    if (!m.name) { skippedList.push('"' + m.id + '": missing "name"'); return; }
+    if (ids.has(m.id)) { skippedList.push('"' + m.id + '": duplicate id in file'); return; }
+    ids.add(m.id);
+    valid.push(m);
+  });
+  // Summary notes (not per-model noise)
+  const nullThinkers = valid.filter(m => !m.thinker).length;
+  const nullExamples = valid.filter(m => !m.historicalExample).length;
+  const notes = [];
+  if (nullThinkers > 0) notes.push(nullThinkers + ' models have no thinker (will show as "Unknown")');
+  if (nullExamples > 0) notes.push(nullExamples + ' models have no historical example (section will be hidden)');
+  return { valid, skipped: skippedList, notes };
+}
+function showPreview(models, skipped, notes, source) {
+  var emptyState = document.getElementById('preview-empty-state');
+  if (emptyState) emptyState.style.display = 'none';
+  var countEl = document.getElementById('preview-count');
+  if (countEl) countEl.textContent = models.length + ' model' + (models.length !== 1 ? 's' : '') + ' ready';
+
+  // Stats
+  var existing = 0, newCount = 0;
+  for (var i=0; i<models.length; i++) {
+    if (mentalModels.some(function(x){return x.id===models[i].id;})) existing++;
+    else newCount++;
+  }
+  var domainCounts = {};
+  for (var i=0; i<models.length; i++) {
+    var d = models[i].domain;
+    domainCounts[d] = (domainCounts[d]||0)+1;
+  }
+  var topDomains = Object.entries(domainCounts).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+
+  var html = '';
+
+  // Summary card
+  html += '<div class="rounded-xl p-4 mb-3" style="background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.2)">';
+  html += '<div class="grid grid-cols-3 gap-3 text-center mb-3">';
+  html += '<div><p class="text-xl font-semibold heading-font" style="color:#22c55e">'+models.length+'</p><p class="text-xs" style="color:var(--text-secondary)">Total</p></div>';
+  html += '<div><p class="text-xl font-semibold heading-font" style="color:var(--accent-gold)">'+newCount+'</p><p class="text-xs" style="color:var(--text-secondary)">New</p></div>';
+  html += '<div><p class="text-xl font-semibold heading-font" style="color:'+(existing>0?'#f97316':'var(--text-secondary)')+'">'+existing+'</p><p class="text-xs" style="color:var(--text-secondary)">Duplicate</p></div>';
+  html += '</div>';
+  html += '<div class="flex flex-wrap gap-1.5">';
+  for (var i=0; i<topDomains.length; i++) {
+    html += '<span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(168,153,104,0.12);color:var(--accent-gold)">'+topDomains[i][0]+' <span style="opacity:0.7">'+topDomains[i][1]+'</span></span>';
+  }
+  html += '</div></div>';
+
+  // Data notes (concise)
+  if (notes && notes.length > 0) {
+    html += '<div class="rounded-xl p-3 mb-3" style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.18)">';
+    html += '<p class="text-xs font-medium mb-1" style="color:#fbbf24">Data Notes</p>';
+    for (var i=0; i<notes.length; i++) {
+      html += '<p class="text-xs" style="color:var(--text-secondary)">'+notes[i]+'</p>';
+    }
+    html += '</div>';
+  }
+
+  // Skipped rows
+  if (skipped && skipped.length > 0) {
+    html += '<div class="rounded-xl p-3 mb-3" style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2)">';
+    html += '<p class="text-xs font-medium mb-1" style="color:#ef4444">'+skipped.length+' row'+(skipped.length!==1?'s':'')+' skipped</p>';
+    for (var i=0; i<Math.min(skipped.length,4); i++) {
+      html += '<p class="text-xs" style="color:var(--text-secondary)">'+skipped[i]+'</p>';
+    }
+    if (skipped.length > 4) html += '<p class="text-xs" style="color:var(--text-secondary);opacity:0.6">...and '+(skipped.length-4)+' more</p>';
+    html += '</div>';
+  }
+
+  // Model list (first 10)
+  html += '<div class="space-y-1.5">';
+  var preview10 = models.slice(0,10);
+  for (var i=0; i<preview10.length; i++) {
+    var m = preview10[i];
+    var isDup = mentalModels.some(function(x){return x.id===m.id;});
+    var bg = isDup ? 'rgba(249,115,22,0.06)' : 'rgba(168,153,104,0.05)';
+    var border = isDup ? 'rgba(249,115,22,0.2)' : 'rgba(168,153,104,0.1)';
+    var badgeBg = isDup ? 'rgba(249,115,22,0.15)' : 'rgba(34,197,94,0.12)';
+    var badgeColor = isDup ? '#f97316' : '#22c55e';
+    var meta = [m.thinker||'Unknown', m.year||'—', m.domain, m.lens].join(' · ');
+    html += '<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg" style="background:'+bg+';border:1px solid '+border+'">';
+    html += '<div class="flex-1 min-w-0">';
+    html += '<p class="text-sm font-medium truncate" style="color:var(--text-primary)">'+m.name+'</p>';
+    html += '<p class="text-xs mt-0.5" style="color:var(--text-secondary)">'+meta+'</p>';
+    html += '</div>';
+    html += '<span class="shrink-0 text-xs px-2 py-0.5 rounded-full" style="background:'+badgeBg+';color:'+badgeColor+'">'+(isDup?'dup':'new')+'</span>';
+    html += '</div>';
+  }
+  if (models.length > 10) {
+    html += '<p class="text-xs text-center py-2" style="color:var(--text-secondary);opacity:0.5">...and '+(models.length-10)+' more models</p>';
+  }
+  html += '</div>';
+
+  document.getElementById('preview-list').innerHTML = html;
+  document.getElementById('preview-section').style.display = 'block';
+  showStatus('success', models.length + ' models parsed successfully. Click "Import Models" to add them.');
+}
+function importModels(){
+  const mode=document.querySelector('input[name="import-mode"]:checked').value;
+  if(mode==='replace') mentalModels.length=0;
+  let added=0,skipped=0;
+  const addedNames=[];
+  pendingModels.forEach(m=>{if(mentalModels.some(x=>x.id===m.id))skipped++;else{mentalModels.push(m);added++;addedNames.push(m.name);}});
+  cancelImport();
+  const detail = mode==='replace' ? 'Library replaced.' : skipped ? `${skipped} duplicate${skipped!==1?'s':''} skipped.` : '';
+  addLog('import', `Imported ${added} model${added!==1?'s':''}`, detail||null, addedNames.length ? addedNames : null);
+  showStatus('success',`Imported ${added} model${added!==1?'s':''}${skipped?'. Skipped '+skipped+' duplicate(s).':'.'}`);
+  updateAdminStats();
+  setTimeout(()=>{ renderModels(); },800);
+}
+function cancelImport(){
+  pendingModels=[];
+  document.getElementById('preview-section').style.display='none';
+  var fi=document.getElementById('file-input'); if(fi) fi.value='';
+  var fn=document.getElementById('file-chosen-name'); if(fn){fn.textContent='';fn.classList.add('hidden');}
+  var sm=document.getElementById('status-message'); if(sm) sm.style.display='none';
+  var es=document.getElementById('preview-empty-state'); if(es) es.style.display='';
+}
+function exportModels(){
+  const blob=new Blob([JSON.stringify(mentalModels,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
+  const filename='mental-models-'+new Date().toISOString().split('T')[0]+'.json';
+  a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  addLog('export', `Library exported`, `${mentalModels.length} model${mentalModels.length!==1?'s':''} saved to ${filename}`);
+  showStatus('success','Models exported successfully');
+}
+function showStatus(type,msg){
+  var el=document.getElementById('status-message');
+  if(!el) return;
+  var bg = type==='error'?'rgba(220,38,38,0.1)':type==='info'?'rgba(90,123,154,0.12)':'rgba(34,197,94,0.1)';
+  var col = type==='error'?'#EF4444':type==='info'?'var(--accent-steel)':'#22C55E';
+  el.innerHTML='<div class="p-3 rounded-lg" style="background:'+bg+';border:1px solid '+col+'"><p style="color:'+col+';font-size:0.875rem">'+msg+'</p></div>';
+  el.style.display='block';
+  if(type!=='error')setTimeout(function(){el.style.display='none';},4000);
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+var adminAuthenticated = false;
+
+function openLogin() {
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('login-id').value = '';
+  document.getElementById('login-pw').value = '';
+  document.getElementById('login-error').classList.add('hidden');
+  document.getElementById('login-id').classList.remove('error');
+  document.getElementById('login-pw').classList.remove('error');
+  setTimeout(function(){ document.getElementById('login-id').focus(); }, 80);
+}
+
+function closeLogin() {
+  document.getElementById('login-overlay').classList.add('hidden');
+}
+
+function togglePwVisibility() {
+  var pw = document.getElementById('login-pw');
+  var eye = document.getElementById('pw-eye');
+  if (pw.type === 'password') {
+    pw.type = 'text';
+    eye.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>';
+  } else {
+    pw.type = 'password';
+    eye.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>';
+  }
+}
+
+function attemptLogin() {
+  var id = document.getElementById('login-id').value.trim();
+  var pw = document.getElementById('login-pw').value;
+  var errEl = document.getElementById('login-error');
+  var idEl = document.getElementById('login-id');
+  var pwEl = document.getElementById('login-pw');
+  idEl.classList.remove('error');
+  pwEl.classList.remove('error');
+  errEl.classList.add('hidden');
+  if (id === 'Adminmentalmodel' && pw === 'Mentalmodel@1990') {
+    adminAuthenticated = true;
+    closeLogin();
+    showPage('admin');
+  } else {
+    errEl.classList.remove('hidden');
+    idEl.classList.add('error');
+    pwEl.classList.add('error');
+    pwEl.value = '';
+    setTimeout(function(){ idEl.classList.remove('error'); pwEl.classList.remove('error'); }, 400);
+  }
+}
+
+function logoutAdmin() {
+  adminAuthenticated = false;
+  showPage('library');
+}
+// ── AUTH END ──────────────────────────────────────────────────────────────────
+
+// ── ADMIN ────────────────────────────────────────────────────────────────────
+let adminTab = 'import';
+let videoListFilter = 'all';
+
+function switchAdminTab(tab) {
+  adminTab = tab;
+  document.querySelectorAll('.admin-tab-btn').forEach(b => {
+    const active = b.id === 'atab-' + tab;
+    b.style.background = active ? 'rgba(168,153,104,0.15)' : 'transparent';
+    b.style.color = active ? 'var(--accent-gold)' : 'var(--text-secondary)';
+  });
+  document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+  const el = document.getElementById('admin-tab-' + tab);
+  if (el) el.classList.remove('hidden');
+  if (tab === 'videos') renderVideoManager();
+  if (tab === 'log') { renderLog(); markLogsRead(); }
+  if (tab === 'export') updateExportCounts();
+}
+
+function openAdmin(tab) {
+  showPage('admin');
+  switchAdminTab(tab || 'import');
+  updateAdminStats();
+}
+
+function updateAdminStats() {
+  const videosSet = mentalModels.filter(m => getVideoId(m.id)).length;
+  const domains = new Set(mentalModels.map(m => m.domain)).size;
+  const logCount = getLogs().length;
+  const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+  el('stat-models', mentalModels.length);
+  el('stat-videos', videosSet);
+  el('stat-events', logCount);
+  el('stat-domains', domains);
+}
+
+// Video manager
+function filterVideoList(f) {
+  videoListFilter = f;
+  document.querySelectorAll('.video-filter-btn').forEach(b => {
+    const active = b.id === 'vf-' + f;
+    b.style.background = active ? 'rgba(168,153,104,0.2)' : 'transparent';
+    b.style.color = active ? 'var(--accent-gold)' : 'var(--text-secondary)';
+    b.style.border = active ? 'none' : '1px solid rgba(168,153,104,0.15)';
+  });
+  renderVideoManager();
+}
+
+function renderVideoManager() {
+  const list = document.getElementById('video-manager-list');
+  if (!list) return;
+  const models = mentalModels.filter(m => {
+    if (videoListFilter === 'set') return !!getVideoId(m.id);
+    if (videoListFilter === 'unset') return !getVideoId(m.id);
+    return true;
+  });
+  if (!models.length) {
+    list.innerHTML = `<div class="flex items-center justify-center py-16 rounded-xl" style="background:var(--bg-card);border:1px dashed rgba(168,153,104,0.15)"><p class="text-sm" style="color:var(--text-secondary);opacity:0.5">No models match this filter</p></div>`;
+    return;
+  }
+  list.innerHTML = models.map(m => {
+    const vid = getVideoId(m.id);
+    return `<div class="flex items-center gap-4 px-5 py-4 rounded-xl transition-all hover:opacity-95" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.08)">
+      <div class="flex-1 min-w-0">
+        <p class="font-medium text-sm" style="color:var(--text-primary)">${m.name}</p>
+        <p class="text-xs mt-0.5" style="color:var(--text-secondary)">${m.thinker||'Unknown'} · ${m.year||'—'} · ${m.domain}</p>
+      </div>
+      ${vid
+        ? `<div class="flex items-center gap-2">
+            <a href="https://youtu.be/${vid}" target="_blank" rel="noopener" class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all hover:opacity-80" style="background:rgba(255,0,0,0.1);color:#ff5555;border:1px solid rgba(255,80,80,0.2)">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+              ${vid}
+            </a>
+            <button onclick="adminEditVideo('${m.id}')" class="text-xs px-3 py-1.5 rounded-lg transition-all hover:opacity-80" style="background:rgba(168,153,104,0.1);color:var(--accent-gold);border:1px solid rgba(168,153,104,0.2)">Edit</button>
+          </div>`
+        : `<button onclick="adminEditVideo('${m.id}')" class="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-all hover:opacity-80" style="background:rgba(168,153,104,0.08);color:var(--text-secondary);border:1px solid rgba(168,153,104,0.15)">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Set Video
+           </button>`}
+    </div>`;
+  }).join('');
+}
+
+function adminEditVideo(modelId) {
+  currentModelId = modelId;
+  openModal();
+}
+
+// Export video links separately
+function exportVideoLinks() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('mml_vids') || '{}');
+    const data = Object.entries(stored).map(([id, vid]) => {
+      const m = mentalModels.find(x => x.id === id);
+      return { modelId: id, modelName: m ? m.name : id, youtubeId: vid, youtubeUrl: `https://youtu.be/${vid}` };
+    });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    const filename = 'video-links-' + new Date().toISOString().split('T')[0] + '.json';
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    addLog('export', 'Video links exported', `${data.length} video link${data.length !== 1 ? 's' : ''} saved to ${filename}`);
+    const el = document.getElementById('export-status');
+    if (el) { el.innerHTML = `<div class="p-3 rounded-lg text-sm" style="background:rgba(34,197,94,0.1);color:#22c55e;border:1px solid rgba(34,197,94,0.2)">${data.length} video links exported</div>`; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 3000); }
+  } catch(e) { addLog('error', 'Video export failed', e.message); }
+}
+
+function updateExportCounts() {
+  const mc = document.getElementById('export-model-count');
+  if (mc) mc.textContent = `${mentalModels.length} model${mentalModels.length !== 1 ? 's' : ''} in library`;
+  try {
+    const vids = JSON.parse(localStorage.getItem('mml_vids') || '{}');
+    const vc = document.getElementById('export-video-count');
+    if (vc) vc.textContent = `${Object.keys(vids).length} custom video link${Object.keys(vids).length !== 1 ? 's' : ''} stored`;
+  } catch(e) {}
+}
+
+function markLogsRead() {
+  const logs = getLogs(); logs.forEach(l => l.read = true); saveLogs(logs); updateLogBadge();
+}
+
+// Override showPage to handle admin stats
+const _origShowPage = showPage;
+showPage = function(name) {
+  if (name === 'admin' && !adminAuthenticated) { openLogin(); return; }
+  _origShowPage(name);
+  if (name === 'admin') { updateAdminStats(); switchAdminTab(adminTab); }
+};
+// ── ADMIN END ─────────────────────────────────────────────────────────────────
+const LOG_KEY = 'mml_activity_log';
+let logFilter = 'all';
+
+function getLogs() {
+  try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch(e) { return []; }
+}
+function saveLogs(logs) {
+  try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(0, 300))); } catch(e) {}
+}
+function addLog(type, title, detail, extra) {
+  const logs = getLogs();
+  logs.unshift({ id: Date.now()+Math.random(), type, title, detail: detail||'', extra: extra||null, ts: new Date().toISOString(), read: false });
+  saveLogs(logs);
+  updateLogBadge();
+  if (document.getElementById('log-drawer').classList.contains('open')) renderLog();
+}
+function updateLogBadge() {
+  const unread = getLogs().filter(l=>!l.read).length;
+  // Header badge
+  const badge = document.getElementById('log-badge');
+  if (badge) { if(unread>0){badge.textContent=unread>99?'99+':unread;badge.classList.remove('hidden');}else badge.classList.add('hidden'); }
+  // Admin sidebar badge
+  const aBadge = document.getElementById('admin-log-badge');
+  if (aBadge) { if(unread>0){aBadge.textContent=unread>99?'99+':unread;aBadge.classList.remove('hidden');}else aBadge.classList.add('hidden'); }
+}
+function toggleLog() {
+  const drawer = document.getElementById('log-drawer');
+  const backdrop = document.getElementById('log-backdrop');
+  const isOpen = drawer.classList.contains('open');
+  drawer.classList.toggle('open');
+  backdrop.classList.toggle('open');
+  if (!isOpen) {
+    const logs = getLogs(); logs.forEach(l=>l.read=true); saveLogs(logs);
+    updateLogBadge(); renderLog();
+  }
+}
+function clearLog() { saveLogs([]); updateLogBadge(); renderLog(); }
+function setLogFilter(f) {
+  logFilter = f;
+  document.querySelectorAll('.log-filter-btn').forEach(b => {
+    const a = b.id === 'lf-'+f;
+    b.style.background = a ? 'rgba(168,153,104,0.2)' : 'transparent';
+    b.style.color = a ? 'var(--accent-gold)' : 'var(--text-secondary)';
+  });
+  renderLog();
+}
+const LOG_ICONS = {
+  import: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>`,
+  video:  `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>`,
+  export: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>`,
+  error:  `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`
+};
+const LOG_COLORS = {
+  import: { bg:'rgba(34,197,94,0.08)',   color:'#22c55e' },
+  video:  { bg:'rgba(255,80,80,0.08)',   color:'#ff5555' },
+  export: { bg:'rgba(90,123,154,0.1)',   color:'#5A7B9A' },
+  error:  { bg:'rgba(239,68,68,0.08)',   color:'#ef4444' }
+};
+function formatLogTime(iso) {
+  const d = new Date(iso), now = new Date(), diff = (now-d)/1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60)+'m ago';
+  if (diff < 86400) return Math.floor(diff/3600)+'h ago';
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+function renderLog() {
+  const logs = getLogs();
+  const filtered = logFilter==='all' ? logs : logs.filter(l=>l.type===logFilter);
+  const container = document.getElementById('log-entries');
+  const emptyEl = document.getElementById('log-empty');
+  const countLabel = document.getElementById('log-count-label');
+  const clearBtn = document.getElementById('clear-log-btn');
+  countLabel.textContent = logs.length===0 ? 'No activity yet' : logs.length+' event'+(logs.length!==1?'s':'');
+  clearBtn && clearBtn.classList.toggle('hidden', logs.length===0);
+  Array.from(container.children).forEach(c=>{ if(c.id!=='log-empty') c.remove(); });
+  if (!filtered.length) { emptyEl && emptyEl.classList.remove('hidden'); return; }
+  emptyEl && emptyEl.classList.add('hidden');
+  let lastDate = '';
+  filtered.forEach(entry => {
+    const entryDate = new Date(entry.ts).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+    if (entryDate !== lastDate) {
+      lastDate = entryDate;
+      const sep = document.createElement('div');
+      sep.className = 'flex items-center gap-2 py-1';
+      sep.innerHTML = `<span class="text-xs font-medium" style="color:var(--text-secondary);opacity:0.45">${entryDate}</span><div class="flex-1 h-px" style="background:rgba(168,153,104,0.08)"></div>`;
+      container.appendChild(sep);
+    }
+    const c = LOG_COLORS[entry.type]||LOG_COLORS.error;
+    const el = document.createElement('div');
+    el.className = 'log-entry flex gap-3 p-3 rounded-xl';
+    el.style.cssText = `background:${c.bg};border:1px solid ${c.color}33`;
+    el.innerHTML = `
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style="background:${c.color}20;color:${c.color}">${LOG_ICONS[entry.type]||''}</div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium leading-snug" style="color:var(--text-primary)">${entry.title}</p>
+        ${entry.detail ? `<p class="text-xs mt-1 leading-relaxed" style="color:var(--text-secondary)">${entry.detail}</p>` : ''}
+        ${entry.extra && entry.extra.length ? `<div class="mt-2 flex flex-wrap gap-1">${entry.extra.map(t=>`<span class="text-xs px-2 py-0.5 rounded-full font-mono" style="background:rgba(168,153,104,0.1);color:var(--text-secondary)">${t}</span>`).join('')}</div>` : ''}
+      </div>
+      <span class="text-xs shrink-0 mt-0.5 whitespace-nowrap" style="color:var(--text-secondary);opacity:0.55">${formatLogTime(entry.ts)}</span>`;
+    container.appendChild(el);
+  });
+}
+updateLogBadge();
+// ── ACTIVITY LOG END ──────────────────────────────────────────────────────────
+
+renderModels();
+setupContextCheckboxes();
+</script>
+</body>
+</html>
