@@ -30,6 +30,25 @@
     @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
     .yt-wrap { position:relative; padding-top:56.25%; background:#000; border-radius:10px; overflow:hidden; }
     .yt-wrap iframe { position:absolute; top:0; left:0; width:100%; height:100%; border:none; }
+    /* Floating back button */
+    .float-back { position:fixed; bottom:24px; left:24px; z-index:500; display:flex; align-items:center; gap:8px; padding:10px 18px; border-radius:50px; font-size:0.85rem; font-weight:500; cursor:pointer; transition:all 0.2s ease; background:var(--bg-card); border:1px solid rgba(168,153,104,0.3); color:var(--accent-gold); box-shadow:0 4px 20px rgba(0,0,0,0.5); }
+    .float-back:hover { background:rgba(168,153,104,0.15); transform:translateY(-2px); box-shadow:0 8px 28px rgba(0,0,0,0.6); }
+    /* Mobile responsive */
+    @media (max-width:768px) {
+      .admin-sidebar { display:none; }
+      .admin-body { flex-direction:column; padding:16px; }
+      .admin-tab-content { width:100%; }
+      .admin-stats { grid-template-columns:repeat(2,1fr) !important; }
+      .detail-content-wrap { padding:16px !important; }
+      .float-back { bottom:16px; left:16px; padding:9px 14px; font-size:0.8rem; }
+      #models-grid { grid-template-columns:1fr !important; }
+      .nav-desktop { display:none; }
+      .search-desktop { display:none !important; }
+    }
+    @media (max-width:480px) {
+      .float-back span.back-label { display:none; }
+      .float-back { padding:10px 12px; }
+    }
     /* Admin Login */
     .login-overlay { position:fixed; inset:0; z-index:2000; display:flex; align-items:center; justify-content:center; background:rgba(10,11,14,0.96); backdrop-filter:blur(8px); }
     .login-box { width:100%; max-width:400px; margin:16px; }
@@ -95,6 +114,10 @@
         </div>
       </div>
       <p id="login-error" class="hidden text-xs mb-4 px-3 py-2.5 rounded-lg" style="color:#ef4444;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.18)">Incorrect ID or password. Please try again.</p>
+      <div class="flex items-center gap-2 mb-5">
+        <input type="checkbox" id="remember-me" style="accent-color:var(--accent-gold);width:15px;height:15px;cursor:pointer">
+        <label for="remember-me" class="text-xs cursor-pointer select-none" style="color:var(--text-secondary)">Remember me on this device</label>
+      </div>
       <button onclick="attemptLogin()" id="login-btn" class="w-full py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90" style="background:var(--accent-gold);color:#0F1115">
         Sign In
       </button>
@@ -112,14 +135,14 @@
   <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
     <div class="flex items-center gap-8">
       <h1 class="text-lg font-semibold heading-font cursor-pointer" onclick="showPage('library')" style="color:var(--text-primary)">Mental Model Library</h1>
-      <nav class="hidden md:flex items-center gap-6 text-sm" style="color:var(--text-secondary)">
+      <nav class="nav-desktop hidden md:flex items-center gap-6 text-sm" style="color:var(--text-secondary)">
         <button onclick="showPage('library')" class="nav-link hover:text-white transition-colors">Index</button>
         <button onclick="showPage('context')" class="nav-link hover:text-white transition-colors">Decision Context</button>
         <button onclick="showPage('about')" class="nav-link hover:text-white transition-colors">Methodology</button>
       </nav>
     </div>
     <div class="flex items-center gap-3">
-      <div class="relative hidden md:block">
+      <div class="search-desktop relative hidden md:block">
         <input type="text" id="search-input" placeholder="Search models..." oninput="handleSearch(this.value)"
           class="w-48 md:w-64 px-4 py-2 text-sm rounded-md border focus:outline-none transition-all"
           style="background:var(--bg-card);border-color:rgba(168,153,104,0.2);color:var(--text-primary)">
@@ -141,7 +164,7 @@
       <div class="max-w-3xl">
         <h2 class="text-4xl md:text-5xl font-semibold heading-font mb-4" style="color:var(--text-primary);line-height:1.2">Mental Model Library</h2>
         <p class="text-lg mb-3" style="color:var(--text-secondary);line-height:1.7">Comprehensive frameworks spanning domains from ancient philosophy to AI era strategy</p>
-        <p class="text-sm mb-6" style="color:var(--accent-gold);opacity:0.8">50+ models across 14 domains, 9 analytical lenses, and 6 historical eras</p>
+        <p class="text-sm mb-6" style="color:var(--accent-gold);opacity:0.8"><span id="hero-stats">Loading...</span></p>
         <div class="relative md:hidden">
           <input type="text" placeholder="Search models..." oninput="handleSearch(this.value)"
             class="w-full px-4 py-2.5 text-sm rounded-md border focus:outline-none"
@@ -151,54 +174,17 @@
       </div>
     </div>
   </section>
-  <section class="px-6 pb-8">
+  <section class="px-4 md:px-6 pb-8">
     <div class="max-w-7xl mx-auto">
-      <div class="flex flex-wrap gap-3 mb-6">
-        <span class="text-xs uppercase tracking-wider mr-2 self-center" style="color:var(--text-secondary)">Domain:</span>
+      <div id="domain-filters" class="flex flex-wrap gap-2 mb-4">
+        <span class="text-xs uppercase tracking-wider mr-1 self-center" style="color:var(--text-secondary)">Domain:</span>
         <button onclick="toggleFilter('domain','all')" class="filter-btn active px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="all">All</button>
-        <button onclick="toggleFilter('domain','politics')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="politics">Politics</button>
-        <button onclick="toggleFilter('domain','science')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="science">Science</button>
-        <button onclick="toggleFilter('domain','governance')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="governance">Governance</button>
-        <button onclick="toggleFilter('domain','strategy')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="strategy">Strategy</button>
-        <button onclick="toggleFilter('domain','economics')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="economics">Economics</button>
-        <button onclick="toggleFilter('domain','finance')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="finance">Finance</button>
-        <button onclick="toggleFilter('domain','love')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="love">Love</button>
-        <button onclick="toggleFilter('domain','health')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="health">Health</button>
-        <button onclick="toggleFilter('domain','technology')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="technology">Technology</button>
-        <button onclick="toggleFilter('domain','culture')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="culture">Culture</button>
-        <button onclick="toggleFilter('domain','law')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="law">Law</button>
-        <button onclick="toggleFilter('domain','business')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="business">Business</button>
-        <button onclick="toggleFilter('domain','environment')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="environment">Environment</button>
-        <button onclick="toggleFilter('domain','identity')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="identity">Identity</button>
-      </div>
-      <div class="flex flex-wrap gap-3 mb-6">
-        <span class="text-xs uppercase tracking-wider mr-2 self-center" style="color:var(--text-secondary)">Lens:</span>
-        <button onclick="toggleFilter('lens','all')" class="filter-btn active px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="all">All</button>
-        <button onclick="toggleFilter('lens','power')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="power">Power</button>
-        <button onclick="toggleFilter('lens','risk')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="risk">Risk</button>
-        <button onclick="toggleFilter('lens','incentives')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="incentives">Incentives</button>
-        <button onclick="toggleFilter('lens','feedback')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="feedback">Feedback</button>
-        <button onclick="toggleFilter('lens','ethics')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="ethics">Ethics</button>
-        <button onclick="toggleFilter('lens','optionality')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="optionality">Optionality</button>
-        <button onclick="toggleFilter('lens','time')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="time">Time</button>
-        <button onclick="toggleFilter('lens','asymmetry')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="asymmetry">Asymmetry</button>
-        <button onclick="toggleFilter('lens','coordination')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="lens" data-value="coordination">Coordination</button>
-      </div>
-      <div class="flex flex-wrap gap-3">
-        <span class="text-xs uppercase tracking-wider mr-2 self-center" style="color:var(--text-secondary)">Era:</span>
-        <button onclick="toggleFilter('era','all')" class="filter-btn active px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="all">All</button>
-        <button onclick="toggleFilter('era','ancient')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="ancient">Ancient</button>
-        <button onclick="toggleFilter('era','medieval')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="medieval">Medieval</button>
-        <button onclick="toggleFilter('era','earlymodern')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="earlymodern">Early Modern</button>
-        <button onclick="toggleFilter('era','industrial')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="industrial">Industrial</button>
-        <button onclick="toggleFilter('era','digital')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="digital">Digital</button>
-        <button onclick="toggleFilter('era','aiera')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="era" data-value="aiera">AI Era</button>
       </div>
     </div>
   </section>
-  <section class="px-6 pb-16">
+  <section class="px-4 md:px-6 pb-16">
     <div class="max-w-7xl mx-auto">
-      <div id="models-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+      <div id="models-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5"></div>
       <div id="no-results" class="hidden text-center py-16"><p style="color:var(--text-secondary)">No models match your current filters.</p></div>
     </div>
   </section>
@@ -206,12 +192,12 @@
 
 <!-- DETAIL PAGE -->
 <main id="page-detail" class="page-content hidden">
-  <div class="max-w-4xl mx-auto px-6 py-12">
-    <div class="flex items-center justify-between mb-8">
-      <button onclick="showPage('library')" class="flex items-center gap-2 text-sm hover:opacity-80 transition-opacity" style="color:var(--accent-gold)">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>Back to Library
-      </button>
-    </div>
+  <!-- Floating back button -->
+  <button onclick="showPage('library')" id="float-back-btn" class="float-back">
+    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    <span class="back-label">Back to Library</span>
+  </button>
+  <div class="detail-content-wrap max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12">
     <div id="detail-content"></div>
   </div>
 </main>
@@ -291,7 +277,7 @@
   </div>
 
   <!-- Admin Body: Sidebar + Content -->
-  <div class="max-w-7xl mx-auto px-6 py-8 flex gap-6">
+  <div class="admin-body max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 flex gap-6">
 
     <!-- Sidebar -->
     <aside class="w-52 shrink-0">
@@ -736,10 +722,12 @@ function removeVideo() {
 }
 
 // PAGES
-let currentFilters={domain:'all',lens:'all',era:'all'}, searchQuery='';
+let currentFilters={domain:'all'}, searchQuery='';
 function showPage(name) {
   document.querySelectorAll('.page-content').forEach(p=>p.classList.add('hidden'));
   document.getElementById('page-'+name).classList.remove('hidden');
+  var fb = document.getElementById('float-back-btn');
+  if (fb) fb.style.display = (name === 'detail') ? 'flex' : 'none';
   if(name==='library') renderModels();
 }
 
@@ -778,12 +766,33 @@ function showModelDetail(modelId) {
 // FILTERS
 function toggleFilter(type,val) {
   currentFilters[type]=val;
-  document.querySelectorAll(`[data-filter="${type}"]`).forEach(b=>b.classList.toggle('active',b.dataset.value===val));
+  document.querySelectorAll('[data-filter="'+type+'"]').forEach(b=>b.classList.toggle('active',b.dataset.value===val));
   renderModels();
 }
 function handleSearch(q){searchQuery=q.toLowerCase();renderModels();}
+
+function buildDomainFilters() {
+  var domains = [...new Set(mentalModels.map(function(m){return m.domain;}))].sort();
+  var container = document.getElementById('domain-filters');
+  if (!container) return;
+  var html = '<span class="text-xs uppercase tracking-wider mr-1 self-center" style="color:var(--text-secondary)">Domain:</span>';
+  html += '<button onclick="toggleFilter(\'domain\',\'all\')" class="filter-btn active px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="all">All</button>';
+  domains.forEach(function(d) {
+    var label = d.charAt(0).toUpperCase() + d.slice(1);
+    html += '<button onclick="toggleFilter(\'domain\',\''+d+'\')" class="filter-btn px-3 py-1.5 text-xs rounded border" style="border-color:rgba(168,153,104,0.3);color:var(--text-secondary)" data-filter="domain" data-value="'+d+'">'+label+'</button>';
+  });
+  container.innerHTML = html;
+}
+
+function updateHeroStats() {
+  var total = mentalModels.length;
+  var domains = new Set(mentalModels.map(function(m){return m.domain;})).size;
+  var el = document.getElementById('hero-stats');
+  if (el) el.textContent = total + ' models across ' + domains + ' domains';
+}
+
 function getFilteredModels(){
-  return mentalModels.filter(m=>(currentFilters.domain==='all'||m.domain===currentFilters.domain)&&(currentFilters.lens==='all'||m.lens===currentFilters.lens)&&(currentFilters.era==='all'||m.era===currentFilters.era)&&(!searchQuery||m.name.toLowerCase().includes(searchQuery)||(m.thinker||'').toLowerCase().includes(searchQuery)||m.description.toLowerCase().includes(searchQuery)||m.tags.some(t=>t.toLowerCase().includes(searchQuery))));
+  return mentalModels.filter(m=>(currentFilters.domain==='all'||m.domain===currentFilters.domain)&&(!searchQuery||m.name.toLowerCase().includes(searchQuery)||(m.thinker||'').toLowerCase().includes(searchQuery)||m.description.toLowerCase().includes(searchQuery)||m.tags.some(t=>t.toLowerCase().includes(searchQuery))));
 }
 
 // RENDER CARDS
@@ -1074,7 +1083,7 @@ function importModels(){
   addLog('import', `Imported ${added} model${added!==1?'s':''}`, detail||null, addedNames.length ? addedNames : null);
   showStatus('success',`Imported ${added} model${added!==1?'s':''}${skipped?'. Skipped '+skipped+' duplicate(s).':'.'}  Models saved — they will persist after refresh.`);
   updateAdminStats();
-  setTimeout(()=>{ renderModels(); },800);
+  setTimeout(()=>{ buildDomainFilters(); updateHeroStats(); renderModels(); },800);
 }
 function cancelImport(){
   pendingModels=[];
@@ -1107,13 +1116,23 @@ function showStatus(type,msg){
 var adminAuthenticated = false;
 
 function openLogin() {
-  document.getElementById('login-overlay').classList.remove('hidden');
-  document.getElementById('login-id').value = '';
-  document.getElementById('login-pw').value = '';
+  // Load saved credentials if any
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem('mml_admin_remember') || 'null'); } catch(e){}
+  document.getElementById('login-id').value = saved ? saved.id : '';
+  document.getElementById('login-pw').value = saved ? saved.pw : '';
+  document.getElementById('remember-me').checked = !!saved;
   document.getElementById('login-error').classList.add('hidden');
   document.getElementById('login-id').classList.remove('error');
   document.getElementById('login-pw').classList.remove('error');
-  setTimeout(function(){ document.getElementById('login-id').focus(); }, 80);
+  // If remembered, go straight in
+  if (saved && saved.id === 'Adminmentalmodel' && saved.pw === 'Mentalmodel@1990') {
+    adminAuthenticated = true;
+    showPage('admin');
+    return;
+  }
+  document.getElementById('login-overlay').classList.remove('hidden');
+  setTimeout(function(){ document.getElementById(saved ? 'login-btn' : 'login-id').focus(); }, 80);
 }
 
 function closeLogin() {
@@ -1142,6 +1161,12 @@ function attemptLogin() {
   pwEl.classList.remove('error');
   errEl.classList.add('hidden');
   if (id === 'Adminmentalmodel' && pw === 'Mentalmodel@1990') {
+    // Save or clear remembered credentials
+    if (document.getElementById('remember-me').checked) {
+      localStorage.setItem('mml_admin_remember', JSON.stringify({id: id, pw: pw}));
+    } else {
+      localStorage.removeItem('mml_admin_remember');
+    }
     adminAuthenticated = true;
     closeLogin();
     showPage('admin');
@@ -1156,6 +1181,7 @@ function attemptLogin() {
 
 function logoutAdmin() {
   adminAuthenticated = false;
+  // Don't clear remembered credentials on logout — only clear if they uncheck Remember Me
   showPage('library');
 }
 // ── AUTH END ──────────────────────────────────────────────────────────────────
@@ -1287,8 +1313,6 @@ const _origShowPage = showPage;
 showPage = function(name) {
   if (name === 'admin' && !adminAuthenticated) { openLogin(); return; }
   _origShowPage(name);
-  if (name === 'admin') { updateAdminStats(); switchAdminTab(adminTab); }
-};
   if (name === 'admin') { updateAdminStats(); switchAdminTab(adminTab); }
 };
 // ── ADMIN END ─────────────────────────────────────────────────────────────────
@@ -1444,7 +1468,7 @@ function addLog(type, title, detail, extra) {
   logs.unshift({ id: Date.now()+Math.random(), type, title, detail: detail||'', extra: extra||null, ts: new Date().toISOString(), read: false });
   saveLogs(logs);
   updateLogBadge();
-  if (document.getElementById('log-drawer').classList.contains('open')) renderLog();
+  const _lt=document.getElementById('admin-tab-log'); if(_lt&&!_lt.classList.contains('hidden')) renderLog();
 }
 function updateLogBadge() {
   const unread = getLogs().filter(l=>!l.read).length;
@@ -1456,15 +1480,7 @@ function updateLogBadge() {
   if (aBadge) { if(unread>0){aBadge.textContent=unread>99?'99+':unread;aBadge.classList.remove('hidden');}else aBadge.classList.add('hidden'); }
 }
 function toggleLog() {
-  const drawer = document.getElementById('log-drawer');
-  const backdrop = document.getElementById('log-backdrop');
-  const isOpen = drawer.classList.contains('open');
-  drawer.classList.toggle('open');
-  backdrop.classList.toggle('open');
-  if (!isOpen) {
-    const logs = getLogs(); logs.forEach(l=>l.read=true); saveLogs(logs);
-    updateLogBadge(); renderLog();
-  }
+  openAdmin('log');
 }
 function clearLog() { saveLogs([]); updateLogBadge(); renderLog(); }
 function setLogFilter(f) {
@@ -1553,6 +1569,8 @@ function clearImportedModels() {
   setTimeout(() => window.location.reload(), 800);
 }
 
+buildDomainFilters();
+updateHeroStats();
 renderModels();
 setupContextCheckboxes();
 </script>
