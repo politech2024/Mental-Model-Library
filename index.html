@@ -1640,6 +1640,9 @@
       <button onclick="switchAdminTab('import')" id="matab-import" class="mobile-tab-btn flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all" style="background: transparent; color: var(--text-secondary);">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>Import
       </button>
+      <button onclick="switchAdminTab('manage')" id="matab-manage" class="mobile-tab-btn flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all" style="color: var(--text-secondary); background: transparent;">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>Manage
+      </button>
       <button onclick="switchAdminTab('videos')" id="matab-videos" class="mobile-tab-btn flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all" style="color: var(--text-secondary); background: transparent;">
         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>Videos
       </button>
@@ -1664,6 +1667,10 @@
         <button onclick="switchAdminTab('import')" id="atab-import" class="admin-tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-left transition-all" style="background: transparent; color: var(--text-secondary);">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
           Import Models
+        </button>
+        <button onclick="switchAdminTab('manage')" id="atab-manage" class="admin-tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-left transition-all" style="color: var(--text-secondary); background: transparent;">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+          Manage Models
         </button>
         <button onclick="switchAdminTab('videos')" id="atab-videos" class="admin-tab-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-left transition-all" style="color: var(--text-secondary); background: transparent;">
           <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
@@ -1694,6 +1701,184 @@
 
     <!-- Main Content Area -->
     <div class="flex-1 min-w-0">
+
+      <!-- ── MANAGE MODELS TAB ── -->
+      <div id="admin-tab-manage" class="admin-tab-content hidden">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+          <div>
+            <h3 class="text-xl font-semibold heading-font mb-1" style="color:var(--text-primary)">Manage Models</h3>
+            <p class="text-sm" style="color:var(--text-secondary)">Edit, delete or bulk-update models in your library.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="relative">
+              <input id="manage-search" type="text" placeholder="Search models…" oninput="renderManageList()"
+                class="pl-8 pr-3 py-2 text-sm rounded-lg border focus:outline-none"
+                style="background:var(--bg-card);border-color:rgba(168,153,104,0.2);color:var(--text-primary);width:200px">
+              <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style="color:var(--text-secondary)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </div>
+            <select id="manage-filter-domain" onchange="renderManageList()" class="py-2 px-3 text-sm rounded-lg border focus:outline-none" style="background:var(--bg-card);border-color:rgba(168,153,104,0.2);color:var(--text-primary)">
+              <option value="">All Domains</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Bulk action bar (hidden until items selected) -->
+        <div id="bulk-bar" class="hidden mb-4 px-4 py-3 rounded-xl flex flex-wrap items-center gap-3" style="background:rgba(168,153,104,0.08);border:1px solid rgba(168,153,104,0.2)">
+          <span id="bulk-count" class="text-sm font-medium" style="color:var(--accent-gold)">0 selected</span>
+          <div class="h-4 w-px" style="background:rgba(168,153,104,0.3)"></div>
+          <span class="text-xs uppercase tracking-wider" style="color:var(--text-secondary)">Bulk change:</span>
+          <select id="bulk-domain" class="py-1.5 px-2 text-xs rounded-lg border focus:outline-none" style="background:var(--bg-card);border-color:rgba(168,153,104,0.25);color:var(--text-primary)">
+            <option value="">Domain…</option>
+            <option value="business">Business</option>
+            <option value="culture">Culture</option>
+            <option value="economics">Economics</option>
+            <option value="environment">Environment</option>
+            <option value="finance">Finance</option>
+            <option value="governance">Governance</option>
+            <option value="health">Health</option>
+            <option value="identity">Identity</option>
+            <option value="law">Law</option>
+            <option value="love">Love</option>
+            <option value="politics">Politics</option>
+            <option value="science">Science</option>
+            <option value="strategy">Strategy</option>
+            <option value="technology">Technology</option>
+          </select>
+          <select id="bulk-confidence" class="py-1.5 px-2 text-xs rounded-lg border focus:outline-none" style="background:var(--bg-card);border-color:rgba(168,153,104,0.25);color:var(--text-primary)">
+            <option value="">Confidence…</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+          </select>
+          <button onclick="applyBulkChange()" class="px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90" style="background:var(--accent-gold);color:#0F1115">Apply</button>
+          <div class="flex-1"></div>
+          <button onclick="bulkDelete()" class="px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2)">
+            <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>Delete Selected
+          </button>
+          <button onclick="clearManageSelection()" class="text-xs px-3 py-1.5 rounded-lg" style="color:var(--text-secondary);border:1px solid rgba(168,153,104,0.15)">Clear</button>
+        </div>
+
+        <!-- Select all row -->
+        <div class="flex items-center gap-3 px-4 py-2 mb-2 rounded-lg" style="background:rgba(168,153,104,0.04);border:1px solid rgba(168,153,104,0.1)">
+          <input type="checkbox" id="manage-select-all" onchange="toggleSelectAll(this.checked)" style="accent-color:var(--accent-gold);width:15px;height:15px;cursor:pointer">
+          <span class="text-xs font-medium uppercase tracking-wider" style="color:var(--text-secondary)">Select All</span>
+          <span id="manage-count-label" class="text-xs ml-auto" style="color:var(--text-secondary)"></span>
+        </div>
+
+        <!-- Model list -->
+        <div id="manage-list" class="flex flex-col gap-1.5"></div>
+      </div>
+
+      <!-- ── EDIT MODEL MODAL (outside tab, full overlay) ── -->
+      <div id="edit-model-overlay" class="hidden" style="position:fixed;inset:0;z-index:3000;background:rgba(10,11,14,0.95);backdrop-filter:blur(8px);overflow-y:auto">
+        <div class="max-w-2xl mx-auto px-4 py-8">
+          <div class="rounded-2xl p-6" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.2)">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-xl font-semibold heading-font" style="color:var(--text-primary)">Edit Model</h3>
+              <button onclick="closeEditModal()" class="p-2 rounded-lg hover:opacity-70" style="color:var(--text-secondary)">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div class="grid gap-4">
+              <input type="hidden" id="edit-id-original">
+              <!-- Row 1: Name + ID -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">Name *</label>
+                  <input id="edit-name" type="text" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)">
+                </div>
+                <div>
+                  <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">ID *</label>
+                  <input id="edit-id" type="text" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)">
+                </div>
+              </div>
+              <!-- Row 2: Thinker + Year -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">Thinker</label>
+                  <input id="edit-thinker" type="text" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)">
+                </div>
+                <div>
+                  <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">Year</label>
+                  <input id="edit-year" type="text" placeholder="e.g. 1979 or 400 BCE" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)">
+                </div>
+              </div>
+              <!-- Row 3: Domain + Lens + Confidence -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">Domain</label>
+                  <select id="edit-domain" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)">
+                    <option value="business">Business</option><option value="culture">Culture</option><option value="economics">Economics</option><option value="environment">Environment</option><option value="finance">Finance</option><option value="governance">Governance</option><option value="health">Health</option><option value="identity">Identity</option><option value="law">Law</option><option value="love">Love</option><option value="politics">Politics</option><option value="science">Science</option><option value="strategy">Strategy</option><option value="technology">Technology</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">Lens</label>
+                  <select id="edit-lens" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)">
+                    <option value="asymmetry">Asymmetry</option><option value="coordination">Coordination</option><option value="ethics">Ethics</option><option value="feedback">Feedback</option><option value="incentives">Incentives</option><option value="optionality">Optionality</option><option value="power">Power</option><option value="risk">Risk</option><option value="time">Time</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">Confidence</label>
+                  <select id="edit-confidence" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)">
+                    <option value="high">High</option><option value="medium">Medium</option>
+                  </select>
+                </div>
+              </div>
+              <!-- Description -->
+              <div>
+                <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">Description</label>
+                <input id="edit-description" type="text" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)">
+              </div>
+              <!-- What it is -->
+              <div>
+                <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">What It Is</label>
+                <textarea id="edit-whatItIs" rows="3" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none resize-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)"></textarea>
+              </div>
+              <!-- Why Exists -->
+              <div>
+                <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">Why It Exists</label>
+                <textarea id="edit-whyExists" rows="2" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none resize-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)"></textarea>
+              </div>
+              <!-- When Not To Use -->
+              <div>
+                <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">When Not To Use</label>
+                <textarea id="edit-whenNotToUse" rows="2" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none resize-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)"></textarea>
+              </div>
+              <!-- Historical Example -->
+              <div>
+                <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">Historical Example</label>
+                <textarea id="edit-historicalExample" rows="2" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none resize-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)"></textarea>
+              </div>
+              <!-- Tags -->
+              <div>
+                <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">Tags <span style="opacity:0.5;font-weight:400;text-transform:none">(comma separated)</span></label>
+                <input id="edit-tags" type="text" placeholder="e.g. reasoning, bias, analysis" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)">
+              </div>
+              <!-- Core Mechanism -->
+              <div>
+                <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">Core Mechanism <span style="opacity:0.5;font-weight:400;text-transform:none">(one per line)</span></label>
+                <textarea id="edit-coreMechanism" rows="3" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none resize-none font-mono" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)"></textarea>
+              </div>
+              <!-- Errors Prevented -->
+              <div>
+                <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">Errors Prevented <span style="opacity:0.5;font-weight:400;text-transform:none">(one per line)</span></label>
+                <textarea id="edit-errorsPrevented" rows="3" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none resize-none font-mono" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)"></textarea>
+              </div>
+              <!-- YouTube ID -->
+              <div>
+                <label class="text-xs font-medium uppercase tracking-wider mb-1.5 block" style="color:var(--text-secondary)">YouTube ID / URL</label>
+                <input id="edit-youtubeId" type="text" placeholder="e.g. dQw4w9WgXcQ or full URL" class="w-full px-3 py-2.5 rounded-lg text-sm border focus:outline-none" style="background:rgba(0,0,0,0.35);border-color:rgba(168,153,104,0.25);color:var(--text-primary)">
+              </div>
+            </div>
+            <!-- Save / Cancel -->
+            <div class="flex gap-3 mt-6">
+              <button onclick="saveEditedModel()" class="flex-1 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90" style="background:var(--accent-gold);color:#0F1115">Save Changes</button>
+              <button onclick="closeEditModal()" class="px-6 py-2.5 rounded-xl text-sm font-medium" style="background:rgba(168,153,104,0.1);color:var(--text-secondary);border:1px solid rgba(168,153,104,0.2)">Cancel</button>
+            </div>
+            <div id="edit-status" class="mt-3 hidden"></div>
+          </div>
+        </div>
+      </div>
 
       <!-- ── IMPORT TAB ── -->
       <div id="admin-tab-import" class="admin-tab-content hidden">
@@ -4792,6 +4977,7 @@ function switchAdminTab(tab) {
   if (tab === 'log') { renderLog(); markLogsRead(); }
   if (tab === 'export') updateExportCounts();
   if (tab === 'github') { loadGhSettings(); updateDeployCount(); }
+  if (tab === 'manage') renderManageList();
 }
 
 function openAdmin(tab) {
@@ -5160,6 +5346,252 @@ function clearImportedModels() {
   addLog('import', 'Library reset', 'Reloading to restore built-in models...');
   setTimeout(function(){ window.location.reload(); }, 500);
 }
+
+
+// ── MODEL MANAGER ────────────────────────────────────────────────────────────
+var manageSelected = new Set();
+var editingModelId = null;
+
+function renderManageList() {
+  var q = (document.getElementById('manage-search')||{value:''}).value.toLowerCase();
+  var domF = (document.getElementById('manage-filter-domain')||{value:''}).value;
+  var filtered = mentalModels.filter(function(m) {
+    var matchQ = !q || m.name.toLowerCase().includes(q) || (m.thinker||'').toLowerCase().includes(q) || m.domain.toLowerCase().includes(q);
+    var matchD = !domF || m.domain === domF;
+    return matchQ && matchD;
+  });
+
+  // Update domain filter options dynamically
+  var domSel = document.getElementById('manage-filter-domain');
+  if (domSel && domSel.options.length <= 1) {
+    var domains = [...new Set(mentalModels.map(function(m){return m.domain;}))].sort();
+    domains.forEach(function(d) {
+      var opt = document.createElement('option');
+      opt.value = d; opt.textContent = d.charAt(0).toUpperCase()+d.slice(1);
+      domSel.appendChild(opt);
+    });
+  }
+
+  var lbl = document.getElementById('manage-count-label');
+  if (lbl) lbl.textContent = filtered.length + ' of ' + mentalModels.length + ' models';
+
+  var list = document.getElementById('manage-list');
+  if (!list) return;
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="text-center py-10 text-sm" style="color:var(--text-secondary)">No models match your search.</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(function(m) {
+    var isBuiltIn = BUILT_IN_IDS && BUILT_IN_IDS.has(m.id);
+    var checked = manageSelected.has(m.id);
+    return '<div class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:opacity-95" style="background:var(--bg-card);border:1px solid rgba(168,153,104,0.08)">' +
+      '<input type="checkbox" class="manage-cb" data-id="'+m.id+'" onchange="toggleManageSelect(\''+m.id+'\',this.checked)" '+(checked?'checked':'')+' style="accent-color:var(--accent-gold);width:15px;height:15px;cursor:pointer;flex-shrink:0">' +
+      '<div class="flex-1 min-w-0">' +
+        '<p class="text-sm font-medium" style="color:var(--text-primary)">'+m.name+'</p>' +
+        '<p class="text-xs mt-0.5" style="color:var(--text-secondary)">'+(m.thinker||'Unknown')+' · '+m.domain+' · '+(m.confidence==='high'?'<span style="color:var(--accent-steel)">High</span>':'<span style="color:var(--accent-gold)">Medium</span>')+'</p>' +
+      '</div>' +
+      '<span class="text-xs px-2 py-0.5 rounded-full shrink-0" style="background:'+(isBuiltIn?'rgba(90,123,154,0.15)':'rgba(168,153,104,0.12)')+';color:'+(isBuiltIn?'var(--accent-steel)':'var(--accent-gold)')+'">'+(isBuiltIn?'built-in':'imported')+'</span>' +
+      '<div class="flex items-center gap-2 shrink-0">' +
+        '<button onclick="openEditModal(\''+m.id+'\')" class="px-3 py-1.5 text-xs rounded-lg hover:opacity-80 transition-all" style="background:rgba(168,153,104,0.1);color:var(--accent-gold);border:1px solid rgba(168,153,104,0.2)">Edit</button>' +
+        '<button onclick="deleteSingleModel(\''+m.id+'\')" class="px-3 py-1.5 text-xs rounded-lg hover:opacity-80 transition-all" style="background:rgba(239,68,68,0.08);color:#ef4444;border:1px solid rgba(239,68,68,0.2)">Delete</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  updateBulkBar();
+  // Sync select-all checkbox
+  var sa = document.getElementById('manage-select-all');
+  if (sa) sa.checked = filtered.length > 0 && filtered.every(function(m){ return manageSelected.has(m.id); });
+}
+
+function toggleManageSelect(id, checked) {
+  if (checked) manageSelected.add(id); else manageSelected.delete(id);
+  updateBulkBar();
+  // Sync select-all
+  var allCbs = document.querySelectorAll('.manage-cb');
+  var sa = document.getElementById('manage-select-all');
+  if (sa) sa.checked = allCbs.length > 0 && Array.from(allCbs).every(function(cb){ return cb.checked; });
+}
+
+function toggleSelectAll(checked) {
+  var allCbs = document.querySelectorAll('.manage-cb');
+  allCbs.forEach(function(cb) {
+    cb.checked = checked;
+    var id = cb.getAttribute('data-id');
+    if (checked) manageSelected.add(id); else manageSelected.delete(id);
+  });
+  updateBulkBar();
+}
+
+function clearManageSelection() {
+  manageSelected.clear();
+  document.querySelectorAll('.manage-cb').forEach(function(cb){ cb.checked = false; });
+  var sa = document.getElementById('manage-select-all');
+  if (sa) sa.checked = false;
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  var bar = document.getElementById('bulk-bar');
+  var lbl = document.getElementById('bulk-count');
+  if (!bar || !lbl) return;
+  var n = manageSelected.size;
+  if (n > 0) {
+    bar.classList.remove('hidden');
+    lbl.textContent = n + ' model' + (n !== 1 ? 's' : '') + ' selected';
+  } else {
+    bar.classList.add('hidden');
+  }
+}
+
+function applyBulkChange() {
+  if (manageSelected.size === 0) return;
+  var domain = document.getElementById('bulk-domain').value;
+  var confidence = document.getElementById('bulk-confidence').value;
+  if (!domain && !confidence) { alert('Please select at least one field to change.'); return; }
+  var n = manageSelected.size;
+  if (!confirm('Apply bulk changes to ' + n + ' model' + (n!==1?'s':'') + '?')) return;
+  var changed = 0;
+  manageSelected.forEach(function(id) {
+    var m = mentalModels.find(function(x){ return x.id === id; });
+    if (!m) return;
+    if (domain) m.domain = domain;
+    if (confidence) m.confidence = confidence;
+    changed++;
+  });
+  saveImportedModels();
+  addLog('import', 'Bulk update: '+changed+' model'+(changed!==1?'s':''), (domain?'Domain → '+domain:'')+(domain&&confidence?' · ':'')+( confidence?'Confidence → '+confidence:''));
+  document.getElementById('bulk-domain').value = '';
+  document.getElementById('bulk-confidence').value = '';
+  clearManageSelection();
+  buildDomainFilters(); updateHeroStats();
+  renderManageList();
+  updateAdminStats();
+}
+
+function bulkDelete() {
+  if (manageSelected.size === 0) return;
+  var n = manageSelected.size;
+  var builtInCount = Array.from(manageSelected).filter(function(id){ return BUILT_IN_IDS && BUILT_IN_IDS.has(id); }).length;
+  var msg = 'Delete ' + n + ' model' + (n!==1?'s':'') + '?';
+  if (builtInCount > 0) msg += '\n\nNote: ' + builtInCount + ' built-in model'+(builtInCount!==1?'s are':' is')+' selected. Built-in models will be restored on page reload unless you also deploy the change.';
+  if (!confirm(msg)) return;
+  manageSelected.forEach(function(id) {
+    var idx = mentalModels.findIndex(function(m){ return m.id === id; });
+    if (idx !== -1) mentalModels.splice(idx, 1);
+  });
+  saveImportedModels();
+  addLog('import', 'Deleted '+n+' model'+(n!==1?'s':''), 'Bulk delete via Model Manager.');
+  manageSelected.clear();
+  buildDomainFilters(); updateHeroStats();
+  renderManageList(); renderModels();
+  updateAdminStats();
+}
+
+function deleteSingleModel(id) {
+  var m = mentalModels.find(function(x){ return x.id === id; });
+  if (!m) return;
+  var isBuiltIn = BUILT_IN_IDS && BUILT_IN_IDS.has(id);
+  var msg = 'Delete "' + m.name + '"?';
+  if (isBuiltIn) msg += '\n\nThis is a built-in model — it will be restored on page reload unless you also deploy the change.';
+  if (!confirm(msg)) return;
+  var idx = mentalModels.findIndex(function(x){ return x.id === id; });
+  if (idx !== -1) mentalModels.splice(idx, 1);
+  manageSelected.delete(id);
+  saveImportedModels();
+  addLog('import', 'Deleted: '+m.name, 'Removed via Model Manager.');
+  buildDomainFilters(); updateHeroStats();
+  renderManageList(); renderModels();
+  updateAdminStats();
+}
+
+function openEditModal(id) {
+  var m = mentalModels.find(function(x){ return x.id === id; });
+  if (!m) return;
+  editingModelId = id;
+  document.getElementById('edit-id-original').value = id;
+  document.getElementById('edit-id').value = m.id || '';
+  document.getElementById('edit-name').value = m.name || '';
+  document.getElementById('edit-thinker').value = m.thinker || '';
+  document.getElementById('edit-year').value = m.year || '';
+  document.getElementById('edit-domain').value = m.domain || 'strategy';
+  document.getElementById('edit-lens').value = m.lens || 'feedback';
+  document.getElementById('edit-confidence').value = m.confidence || 'medium';
+  document.getElementById('edit-description').value = m.description || '';
+  document.getElementById('edit-whatItIs').value = m.whatItIs || '';
+  document.getElementById('edit-whyExists').value = m.whyExists || '';
+  document.getElementById('edit-whenNotToUse').value = m.whenNotToUse || '';
+  document.getElementById('edit-historicalExample').value = m.historicalExample || '';
+  document.getElementById('edit-tags').value = Array.isArray(m.tags) ? m.tags.join(', ') : '';
+  document.getElementById('edit-coreMechanism').value = Array.isArray(m.coreMechanism) ? m.coreMechanism.join('\n') : '';
+  document.getElementById('edit-errorsPrevented').value = Array.isArray(m.errorsPrevented) ? m.errorsPrevented.join('\n') : '';
+  document.getElementById('edit-youtubeId').value = getVideoId(id) || '';
+  var es = document.getElementById('edit-status'); if(es){es.classList.add('hidden');es.innerHTML='';}
+  document.getElementById('edit-model-overlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal() {
+  document.getElementById('edit-model-overlay').classList.add('hidden');
+  document.body.style.overflow = '';
+  editingModelId = null;
+}
+
+function saveEditedModel() {
+  var origId = document.getElementById('edit-id-original').value;
+  var newId = document.getElementById('edit-id').value.trim();
+  var name = document.getElementById('edit-name').value.trim();
+  if (!newId || !name) {
+    showEditStatus('error', 'Name and ID are required.');
+    return;
+  }
+  // Check ID conflict (only if changed)
+  if (newId !== origId && mentalModels.some(function(m){ return m.id === newId; })) {
+    showEditStatus('error', 'Another model already uses this ID: ' + newId);
+    return;
+  }
+  var idx = mentalModels.findIndex(function(m){ return m.id === origId; });
+  if (idx === -1) { showEditStatus('error', 'Model not found.'); return; }
+
+  var yid = extractYoutubeId(document.getElementById('edit-youtubeId').value.trim());
+  if (yid) setVideoId(newId, yid); else if (origId !== newId) setVideoId(origId, null);
+
+  mentalModels[idx] = Object.assign({}, mentalModels[idx], {
+    id: newId,
+    name: name,
+    thinker: document.getElementById('edit-thinker').value.trim() || null,
+    year: document.getElementById('edit-year').value.trim() || null,
+    domain: document.getElementById('edit-domain').value,
+    lens: document.getElementById('edit-lens').value,
+    confidence: document.getElementById('edit-confidence').value,
+    description: document.getElementById('edit-description').value.trim(),
+    whatItIs: document.getElementById('edit-whatItIs').value.trim(),
+    whyExists: document.getElementById('edit-whyExists').value.trim(),
+    whenNotToUse: document.getElementById('edit-whenNotToUse').value.trim(),
+    historicalExample: document.getElementById('edit-historicalExample').value.trim() || null,
+    tags: document.getElementById('edit-tags').value.split(',').map(function(t){return t.trim();}).filter(Boolean),
+    coreMechanism: document.getElementById('edit-coreMechanism').value.split('\n').map(function(t){return t.trim();}).filter(Boolean),
+    errorsPrevented: document.getElementById('edit-errorsPrevented').value.split('\n').map(function(t){return t.trim();}).filter(Boolean),
+  });
+
+  saveImportedModels();
+  addLog('import', 'Edited: '+name, 'Updated via Model Manager.');
+  buildDomainFilters(); updateHeroStats();
+  renderManageList(); renderModels();
+  updateAdminStats();
+  showEditStatus('success', '✓ Saved successfully!');
+  setTimeout(closeEditModal, 900);
+}
+
+function showEditStatus(type, msg) {
+  var el = document.getElementById('edit-status');
+  if (!el) return;
+  el.innerHTML = '<p class="text-sm px-4 py-2.5 rounded-lg" style="background:'+(type==='error'?'rgba(239,68,68,0.1)':'rgba(34,197,94,0.1)')+';color:'+(type==='error'?'#ef4444':'#22c55e')+';border:1px solid '+(type==='error'?'rgba(239,68,68,0.2)':'rgba(34,197,94,0.2)')+'">'+msg+'</p>';
+  el.classList.remove('hidden');
+}
+// ── MODEL MANAGER END ─────────────────────────────────────────────────────────
 
 // Build dynamic UI after all models are loaded
 buildDomainFilters();
